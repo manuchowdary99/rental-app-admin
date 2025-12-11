@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "775134713875",
+    "project_id": "rental-b3324",
+    "storage_bucket": "rental-b3324.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:775134713875:android:4acf6e8cc4201160a947e6",
+        "android_client_info": {
+          "package_name": "com.example.rental_admin_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAQtpQFqWLbE4aGRZi1S--NrpLYHBs13wc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:775134713875:android:5d1801b5b7e9db37a947e6",
+        "android_client_info": {
+          "package_name": "com.rental.b3324.rental_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAQtpQFqWLbE4aGRZi1S--NrpLYHBs13wc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
