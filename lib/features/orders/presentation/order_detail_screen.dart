@@ -29,8 +29,9 @@ class OrderDetailScreen extends StatelessWidget {
           final borrowerId = data['borrowerId']?.toString() ?? '';
           final tracking = data['trackingInfo']?.toString() ?? '';
           final expectedTs = data['expectedDeliveryTime'] as Timestamp?;
-          final expectedStr =
-              expectedTs != null ? expectedTs.toDate().toString() : '-';
+          final expectedStr = expectedTs != null
+              ? expectedTs.toDate().toString()
+              : '-';
 
           final beforeUrl = data['beforeImageUrl'] as String?;
           final afterUrl = data['afterImageUrl'] as String?;
@@ -128,7 +129,7 @@ class OrderDetailScreen extends StatelessWidget {
                 Text(
                   damageScore != null
                       ? 'Damage: ${damageLabel ?? 'scored'} '
-                        '(${damageScore.toStringAsFixed(2)})'
+                            '(${damageScore.toStringAsFixed(2)})'
                       : 'No damage score yet',
                 ),
               ],

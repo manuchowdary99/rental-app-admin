@@ -46,8 +46,9 @@ class UserDetailScreen extends StatelessWidget {
             SizedBox(
               height: 200,
               child: StreamBuilder<QuerySnapshot>(
-                stream:
-                    itemsRef.where('ownerId', isEqualTo: userId).snapshots(),
+                stream: itemsRef
+                    .where('ownerId', isEqualTo: userId)
+                    .snapshots(),
                 builder: (context, snapshot) {
                   if (!snapshot.hasData) {
                     return const Center(child: CircularProgressIndicator());
@@ -58,12 +59,12 @@ class UserDetailScreen extends StatelessWidget {
                   }
                   return ListView(
                     children: docs.map((doc) {
-                      final data =
-                          doc.data() as Map<String, dynamic>? ?? {};
+                      final data = doc.data() as Map<String, dynamic>? ?? {};
                       return ListTile(
                         title: Text(data['title']?.toString() ?? ''),
-                        subtitle:
-                            Text('Status: ${data['status'] ?? 'unknown'}'),
+                        subtitle: Text(
+                          'Status: ${data['status'] ?? 'unknown'}',
+                        ),
                       );
                     }).toList(),
                   );
@@ -92,12 +93,12 @@ class UserDetailScreen extends StatelessWidget {
                   }
                   return ListView(
                     children: docs.map((doc) {
-                      final data =
-                          doc.data() as Map<String, dynamic>? ?? {};
+                      final data = doc.data() as Map<String, dynamic>? ?? {};
                       return ListTile(
                         title: Text('Order: ${doc.id}'),
-                        subtitle:
-                            Text('Status: ${data['status'] ?? 'unknown'}'),
+                        subtitle: Text(
+                          'Status: ${data['status'] ?? 'unknown'}',
+                        ),
                       );
                     }).toList(),
                   );
@@ -126,12 +127,12 @@ class UserDetailScreen extends StatelessWidget {
                   }
                   return ListView(
                     children: docs.map((doc) {
-                      final data =
-                          doc.data() as Map<String, dynamic>? ?? {};
+                      final data = doc.data() as Map<String, dynamic>? ?? {};
                       return ListTile(
                         title: Text('Order: ${doc.id}'),
-                        subtitle:
-                            Text('Status: ${data['status'] ?? 'unknown'}'),
+                        subtitle: Text(
+                          'Status: ${data['status'] ?? 'unknown'}',
+                        ),
                       );
                     }).toList(),
                   );

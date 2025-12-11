@@ -22,17 +22,24 @@ class AuthService {
     return user;
   }
 
-  // NEW: Google sign-in for web using popup
-  Future<User?> signInWithGoogleAsAdmin() async {
-    final googleProvider = GoogleAuthProvider();
-    googleProvider.addScope('email');
-
-    final cred = await _auth.signInWithPopup(googleProvider);
-    final user = cred.user;
+  /// Call once on app start to finish a pending Google redirect sign‑in.
+  Future<User?> handleGoogleRedirectIfNeeded() async {
+    final result = await _auth.getRedirectResult();
+    final user = result.user;
     if (user == null) return null;
-
     await _ensureAdminAccess(user);
     return user;
+  }
+
+  /// Google sign‑in using redirect (avoids popup handler bug on some projects).
+  Future<void> signInWithGoogleAsAdmin() async {
+    final googleProvider = GoogleAuthProvider()
+      ..addScope('email')
+      ..addScope('profile');
+
+    await _auth.signInWithRedirect(googleProvider);
+    // After redirect back to your app, handleGoogleRedirectIfNeeded()
+    // will be called from your root widget to complete sign‑in.
   }
 
   Future<void> _ensureAdminAccess(User user) async {
@@ -48,6 +55,29 @@ class AuthService {
   }
 
   Future<void> signOut() => _auth.signOut();
+
+  Future<void> createTestAdmin() async {
+    try {
+      final cred = await _auth.createUserWithEmailAndPassword(
+        email: 'admin@test.com',
+        password: 'admin123',
+      );
+
+      if (cred.user != null) {
+        await _db.collection('users').doc(cred.user!.uid).set({
+          'email': 'admin@test.com',
+          'displayName': 'Test Admin',
+          'role': 'admin',
+          'isBlocked': false,
+          'isTrusted': true,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+        print('Test admin user created successfully!');
+      }
+    } catch (e) {
+      print('Admin user might already exist or error: $e');
+    }
+  }
 }
 
 final authServiceProvider = Provider<AuthService>((ref) => AuthService());

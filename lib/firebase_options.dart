@@ -85,5 +85,4 @@ class DefaultFirebaseOptions {
     storageBucket: 'rental-b3324.firebasestorage.app',
     measurementId: 'G-N7VXZ06NYV',
   );
-
 }

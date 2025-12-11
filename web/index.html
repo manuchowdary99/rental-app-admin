@@ -29,10 +29,32 @@
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
-  <title>rental_admin_app</title>
+  <title>Rental Admin</title>
   <link rel="manifest" href="manifest.json">
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.5.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.5.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.5.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
+  <!-- Firebase Configuration -->
+  <script>
+    // Initialize Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyDwLR8YZ9z659soqNniOpRcUIXlnDolKOs",
+      authDomain: "rental-b3324.firebaseapp.com",
+      projectId: "rental-b3324",
+      storageBucket: "rental-b3324.firebasestorage.app",
+      messagingSenderId: "775134713875",
+      appId: "1:775134713875:web:63190d4f8cb97a66a947e6",
+      measurementId: "G-NC0VWBDYBH"
+    };
+    
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+  </script>
+
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
