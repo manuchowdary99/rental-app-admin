@@ -28,7 +28,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [Color(0xFF667eea), Color(0xFF764ba2)],
+              colors: [Color(0xFF781C2E), Color(0xFF5A1521)],
             ),
           ),
           child: SafeArea(
@@ -70,15 +70,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   begin: Alignment.topLeft,
                                   end: Alignment.bottomRight,
                                   colors: [
-                                    Color(0xFF667eea),
-                                    Color(0xFF764ba2),
+                                    Color(0xFF781C2E),
+                                    Color(0xFF5A1521),
                                   ],
                                 ),
                                 borderRadius: BorderRadius.circular(20),
                                 boxShadow: [
                                   BoxShadow(
                                     color: const Color(
-                                      0xFF667eea,
+                                      0xFF781C2E,
                                     ).withValues(alpha: 0.4),
                                     blurRadius: 20,
                                     offset: const Offset(0, 8),
@@ -118,22 +118,26 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               Container(
                                 padding: const EdgeInsets.all(16),
                                 decoration: BoxDecoration(
-                                  color: Colors.red[50],
+                                  color: const Color(0xFFF9F6EE),
                                   borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: Colors.red[200]!),
+                                  border: Border.all(
+                                    color: const Color(
+                                      0xFF781C2E,
+                                    ).withValues(alpha: 0.3),
+                                  ),
                                 ),
                                 child: Row(
                                   children: [
-                                    Icon(
+                                    const Icon(
                                       Icons.error_outline,
-                                      color: Colors.red[700],
+                                      color: Color(0xFF781C2E),
                                     ),
                                     const SizedBox(width: 12),
                                     Expanded(
                                       child: Text(
                                         _error!,
-                                        style: TextStyle(
-                                          color: Colors.red[700],
+                                        style: const TextStyle(
+                                          color: Color(0xFF781C2E),
                                         ),
                                       ),
                                     ),
@@ -270,11 +274,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               child: ElevatedButton(
                                 onPressed: _loading ? null : _submit,
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF667eea),
+                                  backgroundColor: const Color(0xFF781C2E),
                                   foregroundColor: Colors.white,
                                   elevation: 8,
                                   shadowColor: const Color(
-                                    0xFF667eea,
+                                    0xFF781C2E,
                                   ).withValues(alpha: 0.4),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(16),
@@ -323,7 +327,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                       style: TextStyle(
                                         fontSize: 14,
                                         fontWeight: FontWeight.bold,
-                                        color: Color(0xFF4285F4),
+                                        color: Color(0xFF781C2E),
                                       ),
                                     ),
                                   ),
@@ -359,34 +363,38 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             Container(
                               padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(
-                                color: Colors.blue[50],
+                                color: const Color(0xFFF9F6EE),
                                 borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: Colors.blue[200]!),
+                                border: Border.all(
+                                  color: const Color(
+                                    0xFF781C2E,
+                                  ).withValues(alpha: 0.3),
+                                ),
                               ),
                               child: Column(
                                 children: [
                                   Row(
                                     children: [
-                                      Icon(
+                                      const Icon(
                                         Icons.info_outline,
-                                        color: Colors.blue[700],
+                                        color: Color(0xFF781C2E),
                                         size: 20,
                                       ),
                                       const SizedBox(width: 8),
-                                      Text(
+                                      const Text(
                                         'Test Admin Login',
                                         style: TextStyle(
-                                          color: Colors.blue[700],
+                                          color: Color(0xFF781C2E),
                                           fontWeight: FontWeight.bold,
                                         ),
                                       ),
                                     ],
                                   ),
                                   const SizedBox(height: 8),
-                                  Text(
+                                  const Text(
                                     'Email: admin@test.com\nPassword: admin123',
                                     style: TextStyle(
-                                      color: Colors.blue[600],
+                                      color: Color(0xFF781C2E),
                                       fontSize: 12,
                                     ),
                                   ),

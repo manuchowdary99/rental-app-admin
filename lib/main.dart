@@ -6,7 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'firebase_options.dart';
 import 'core/services/auth_service.dart';
 import 'features/auth/presentation/login_screen.dart';
-import 'features/dashboard/presentation/admin_home_screen.dart';
+import 'features/navigation/presentation/admin_main_navigation.dart';
 
 final authStateChangesProvider = StreamProvider<User?>(
   (ref) => ref.watch(authServiceProvider).authStateChanges(),
@@ -34,7 +34,7 @@ class AdminApp extends ConsumerWidget {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFF667eea), Color(0xFF764ba2)],
+            colors: [Color(0xFF781C2E), Color(0xFF5A1521)],
           ),
         ),
         child: authState.when(
@@ -42,7 +42,7 @@ class AdminApp extends ConsumerWidget {
             if (user == null) {
               return const LoginScreen();
             }
-            return const AdminHomeScreen();
+            return const AdminMainNavigation();
           },
           loading: () =>
               const Scaffold(body: Center(child: CircularProgressIndicator())),
@@ -56,7 +56,7 @@ class AdminApp extends ConsumerWidget {
     return ThemeData(
       useMaterial3: true,
       colorScheme: ColorScheme.fromSeed(
-        seedColor: const Color(0xFF667eea),
+        seedColor: const Color(0xFF781C2E),
         brightness: Brightness.light,
       ),
       cardTheme: CardThemeData(

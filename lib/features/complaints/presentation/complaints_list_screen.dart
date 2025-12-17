@@ -15,7 +15,7 @@ class ComplaintsListScreen extends StatelessWidget {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFFEF4444), Color(0xFFDC2626)],
+            colors: [Color(0xFF781C2E), Color(0xFF5A1521)],
           ),
         ),
         child: SafeArea(
@@ -70,7 +70,7 @@ class ComplaintsListScreen extends StatelessWidget {
                 child: Container(
                   width: double.infinity,
                   decoration: const BoxDecoration(
-                    color: Color(0xFFF8FAFC),
+                    color: Color(0xFFF9F6EE),
                     borderRadius: BorderRadius.only(
                       topLeft: Radius.circular(30),
                       topRight: Radius.circular(30),

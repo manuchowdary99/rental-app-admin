@@ -17,7 +17,7 @@ class OrdersListScreen extends StatelessWidget {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFFF59E0B), Color(0xFFD97706)],
+            colors: [Color(0xFF781C2E), Color(0xFF5A1521)],
           ),
         ),
         child: SafeArea(
@@ -72,7 +72,7 @@ class OrdersListScreen extends StatelessWidget {
                 child: Container(
                   width: double.infinity,
                   decoration: const BoxDecoration(
-                    color: Color(0xFFF8FAFC),
+                    color: Color(0xFFF9F6EE),
                     borderRadius: BorderRadius.only(
                       topLeft: Radius.circular(30),
                       topRight: Radius.circular(30),

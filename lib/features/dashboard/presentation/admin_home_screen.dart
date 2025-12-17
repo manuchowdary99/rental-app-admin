@@ -20,7 +20,7 @@ class AdminHomeScreen extends ConsumerWidget {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFF667eea), Color(0xFF764ba2)],
+            colors: [Color(0xFF781C2E), Color(0xFF5A1521)],
           ),
         ),
         child: SafeArea(
@@ -98,7 +98,7 @@ class AdminHomeScreen extends ConsumerWidget {
                 child: Container(
                   width: double.infinity,
                   decoration: const BoxDecoration(
-                    color: Color(0xFFF8FAFC),
+                    color: Color(0xFFF9F6EE),
                     borderRadius: BorderRadius.only(
                       topLeft: Radius.circular(30),
                       topRight: Radius.circular(30),
@@ -138,7 +138,7 @@ class AdminHomeScreen extends ConsumerWidget {
                               'Users',
                               'Manage all users',
                               Icons.people_rounded,
-                              const Color(0xFF667eea),
+                              const Color(0xFF781C2E),
                               () => Navigator.of(context).push(
                                 MaterialPageRoute(
                                   builder: (_) => const UsersListScreen(),

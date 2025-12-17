@@ -17,7 +17,7 @@ class UsersListScreen extends StatelessWidget {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFF667eea), Color(0xFF764ba2)],
+            colors: [Color(0xFF781C2E), Color(0xFF5A1521)],
           ),
         ),
         child: SafeArea(
@@ -72,7 +72,7 @@ class UsersListScreen extends StatelessWidget {
                 child: Container(
                   width: double.infinity,
                   decoration: const BoxDecoration(
-                    color: Color(0xFFF8FAFC),
+                    color: Color(0xFFF9F6EE),
                     borderRadius: BorderRadius.only(
                       topLeft: Radius.circular(30),
                       topRight: Radius.circular(30),
@@ -358,7 +358,7 @@ class UsersListScreen extends StatelessWidget {
       case 'premium':
         return const Color(0xFF8B5CF6);
       default:
-        return const Color(0xFF667eea);
+        return const Color(0xFF781C2E);
     }
   }
 

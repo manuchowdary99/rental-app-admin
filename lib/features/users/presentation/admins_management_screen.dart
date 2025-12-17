@@ -15,7 +15,7 @@ class AdminsManagementScreen extends StatelessWidget {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFF667eea), Color(0xFF764ba2)],
+            colors: [Color(0xFF781C2E), Color(0xFF5A1521)],
           ),
         ),
         child: SafeArea(
@@ -76,7 +76,7 @@ class AdminsManagementScreen extends StatelessWidget {
                 child: Container(
                   width: double.infinity,
                   decoration: const BoxDecoration(
-                    color: Color(0xFFF8FAFC),
+                    color: Color(0xFFF9F6EE),
                     borderRadius: BorderRadius.only(
                       topLeft: Radius.circular(30),
                       topRight: Radius.circular(30),
@@ -126,7 +126,7 @@ class AdminsManagementScreen extends StatelessWidget {
                               boxShadow: [
                                 BoxShadow(
                                   color: isAdmin
-                                      ? const Color(0xFF667eea).withOpacity(0.1)
+                                      ? const Color(0xFF781C2E).withOpacity(0.1)
                                       : Colors.black.withOpacity(0.05),
                                   blurRadius: 10,
                                   offset: const Offset(0, 4),
