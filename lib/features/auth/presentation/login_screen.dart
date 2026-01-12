@@ -195,6 +195,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               child: TextFormField(
                                 controller: _emailCtrl,
                                 keyboardType: TextInputType.emailAddress,
+                                textInputAction: TextInputAction.next,
+                                onFieldSubmitted: (_) {
+                                  // Move focus to password field when Enter is pressed
+                                  FocusScope.of(context).nextFocus();
+                                },
                                 decoration: InputDecoration(
                                   labelText: 'Email',
                                   prefixIcon: Icon(
@@ -243,6 +248,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               child: TextFormField(
                                 controller: _passwordCtrl,
                                 obscureText: true,
+                                textInputAction: TextInputAction.done,
+                                onFieldSubmitted: (_) {
+                                  // Submit form when Enter is pressed in password field
+                                  if (!_loading) {
+                                    _submit();
+                                  }
+                                },
                                 decoration: InputDecoration(
                                   labelText: 'Password',
                                   prefixIcon: Icon(

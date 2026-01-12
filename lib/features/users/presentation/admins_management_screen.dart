@@ -217,7 +217,7 @@ class AdminsManagementScreen extends StatelessWidget {
                                     'role': value ? 'admin' : 'user',
                                   });
                                 },
-                                activeColor: const Color(0xFF667eea),
+                                activeThumbColor: const Color(0xFF667eea),
                                 activeTrackColor: const Color(
                                   0xFF667eea,
                                 ).withOpacity(0.3),

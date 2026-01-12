@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../../core/widgets/admin_widgets.dart';
 import '../../../core/services/auth_service.dart';
@@ -103,43 +104,110 @@ class AdminDashboardScreen extends ConsumerWidget {
   }
 
   Widget _buildStatsCards() {
-    return GridView.count(
-      crossAxisCount: 2,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisSpacing: 12,
-      mainAxisSpacing: 12,
-      childAspectRatio: 1.5,
-      children: const [
-        StatCard(
-          title: 'Total Users',
-          value: '2,847',
-          icon: Icons.people_rounded,
-          color: Color(0xFF781C2E),
-          subtitle: '+12% this month',
-        ),
-        StatCard(
-          title: 'Active Rentals',
-          value: '156',
-          icon: Icons.shopping_bag_rounded,
-          color: Color(0xFF8B2635),
-          subtitle: '23 ending today',
-        ),
-        StatCard(
-          title: 'Ongoing Orders',
-          value: '89',
-          icon: Icons.local_shipping_rounded,
-          color: Color(0xFF9E2F3C),
-          subtitle: '12 pending pickup',
-        ),
-        StatCard(
-          title: 'Open Complaints',
-          value: '7',
-          icon: Icons.support_agent_rounded,
-          color: Color(0xFFB13843),
-          subtitle: '2 high priority',
-        ),
-      ],
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance.collection('orders').snapshots(),
+      builder: (context, ordersSnapshot) {
+        return StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance.collection('users').snapshots(),
+          builder: (context, usersSnapshot) {
+            return StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('complaints')
+                  .snapshots(),
+              builder: (context, complaintsSnapshot) {
+                // Calculate real-time stats
+                String totalUsers = '0';
+                String activeRentals = '0';
+                String ongoingOrders = '0';
+                String openComplaints = '0';
+
+                if (usersSnapshot.hasData) {
+                  totalUsers = usersSnapshot.data!.docs.length.toString();
+                }
+
+                if (ordersSnapshot.hasData) {
+                  final orders = ordersSnapshot.data!.docs;
+
+                  // Count active rentals (confirmed, picked up, in use)
+                  final activeCount = orders.where((doc) {
+                    final status =
+                        (doc.data() as Map<String, dynamic>)['status']
+                            ?.toString()
+                            .toLowerCase();
+                    return status == 'confirmed' ||
+                        status == 'picked up' ||
+                        status == 'in use';
+                  }).length;
+                  activeRentals = activeCount.toString();
+
+                  // Count ongoing orders (requested, confirmed, picked up)
+                  final ongoingCount = orders.where((doc) {
+                    final status =
+                        (doc.data() as Map<String, dynamic>)['status']
+                            ?.toString()
+                            .toLowerCase();
+                    return status == 'requested' ||
+                        status == 'confirmed' ||
+                        status == 'picked up';
+                  }).length;
+                  ongoingOrders = ongoingCount.toString();
+                }
+
+                if (complaintsSnapshot.hasData) {
+                  final complaints = complaintsSnapshot.data!.docs;
+                  final openCount = complaints.where((doc) {
+                    final status =
+                        (doc.data() as Map<String, dynamic>)['status']
+                            ?.toString()
+                            .toLowerCase();
+                    return status == 'open' || status == 'in progress';
+                  }).length;
+                  openComplaints = openCount.toString();
+                }
+
+                return GridView.count(
+                  crossAxisCount: 2,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                  childAspectRatio: 1.5,
+                  children: [
+                    StatCard(
+                      title: 'Total Users',
+                      value: totalUsers,
+                      icon: Icons.people_rounded,
+                      color: const Color(0xFF781C2E),
+                      subtitle: 'Registered users',
+                    ),
+                    StatCard(
+                      title: 'Active Rentals',
+                      value: activeRentals,
+                      icon: Icons.shopping_bag_rounded,
+                      color: const Color(0xFF8B2635),
+                      subtitle: 'Currently active',
+                    ),
+                    StatCard(
+                      title: 'Ongoing Orders',
+                      value: ongoingOrders,
+                      icon: Icons.local_shipping_rounded,
+                      color: const Color(0xFF9E2F3C),
+                      subtitle: 'In process',
+                    ),
+                    StatCard(
+                      title: 'Open Complaints',
+                      value: openComplaints,
+                      icon: Icons.support_agent_rounded,
+                      color: const Color(0xFFB13843),
+                      subtitle: 'Needs attention',
+                    ),
+                  ],
+                );
+              },
+            );
+          },
+        );
+      },
     );
   }
 
