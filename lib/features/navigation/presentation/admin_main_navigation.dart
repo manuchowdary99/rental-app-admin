@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../dashboard/presentation/admin_dashboard_screen.dart';
-import '../../orders/presentation/orders_management_screen.dart';
+import '../../rentals/presentation/rentals_management_screen.dart';
 import '../../delivery/presentation/delivery_management_screen.dart';
 import '../../users/presentation/users_management_screen.dart';
 import '../../complaints/presentation/complaints_management_screen.dart';
@@ -20,7 +20,7 @@ class _AdminMainNavigationState extends State<AdminMainNavigation> {
   Widget build(BuildContext context) {
     final screens = [
       const AdminDashboardScreen(),
-      const OrdersManagementScreen(),
+      const RentalsManagementScreen(),
       const DeliveryManagementScreen(),
       const UsersManagementScreen(),
       const ComplaintsManagementScreen(),
@@ -47,7 +47,7 @@ class _AdminMainNavigationState extends State<AdminMainNavigation> {
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 _buildNavItem(context, 0, Icons.dashboard_rounded, 'Dashboard'),
-                _buildNavItem(context, 1, Icons.shopping_bag_rounded, 'Orders'),
+                _buildNavItem(context, 1, Icons.assignment_rounded, 'Rentals'),
                 _buildNavItem(
                   context,
                   2,
