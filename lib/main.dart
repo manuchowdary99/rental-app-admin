@@ -7,7 +7,10 @@ import 'firebase_options.dart';
 import 'core/services/auth_service.dart';
 import 'features/auth/presentation/login_screen.dart';
 import 'features/navigation/presentation/admin_main_navigation.dart';
+<<<<<<< HEAD
 import 'features/categories/screens/categories_screen.dart';
+=======
+>>>>>>> cb52e203ac19b5393c71b07f600925278dfdd8c8
 
 final authStateChangesProvider = StreamProvider<User?>(
   (ref) => ref.watch(authServiceProvider).authStateChanges(),
