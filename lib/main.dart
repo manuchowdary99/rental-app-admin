@@ -7,18 +7,17 @@ import 'firebase_options.dart';
 import 'core/services/auth_service.dart';
 import 'features/auth/presentation/login_screen.dart';
 import 'features/navigation/presentation/admin_main_navigation.dart';
-<<<<<<< HEAD
-import 'features/categories/screens/categories_screen.dart';
-=======
->>>>>>> cb52e203ac19b5393c71b07f600925278dfdd8c8
 
+/// 🔹 Auth State Provider
 final authStateChangesProvider = StreamProvider<User?>(
-  (ref) => ref.watch(authServiceProvider).authStateChanges(),
+  (ref) => ref.read(authServiceProvider).authStateChanges(),
 );
 
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   runApp(const ProviderScope(child: AdminApp()));
 }
 
@@ -32,60 +31,20 @@ class AdminApp extends ConsumerWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Rental Admin',
-      theme: _buildModernTheme(),
-      home: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF781C2E), Color(0xFF5A1521)],
-          ),
-        ),
-        child: authState.when(
-          data: (user) {
-            if (user == null) {
-              return const LoginScreen();
-            }
-            return const AdminMainNavigation();
-          },
-          loading: () =>
-              const Scaffold(body: Center(child: CircularProgressIndicator())),
-          error: (e, _) => Scaffold(body: Center(child: Text('Error: $e'))),
+      theme: ThemeData(
+        useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF781C2E),
         ),
       ),
-    );
-  }
-
-  ThemeData _buildModernTheme() {
-    return ThemeData(
-      useMaterial3: true,
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: const Color(0xFF781C2E),
-        brightness: Brightness.light,
-      ),
-      cardTheme: CardThemeData(
-        elevation: 12,
-        shadowColor: Colors.black.withOpacity(0.3),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      ),
-      elevatedButtonTheme: ElevatedButtonThemeData(
-        style: ElevatedButton.styleFrom(
-          elevation: 8,
-          shadowColor: Colors.black.withOpacity(0.3),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(15),
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+      home: authState.when(
+        data: (user) =>
+            user == null ? const LoginScreen() : const AdminMainNavigation(),
+        loading: () => const Scaffold(
+          body: Center(child: CircularProgressIndicator()),
         ),
-      ),
-      appBarTheme: AppBarTheme(
-        elevation: 0,
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
-        titleTextStyle: const TextStyle(
-          fontSize: 24,
-          fontWeight: FontWeight.w600,
-          color: Colors.white,
+        error: (e, _) => Scaffold(
+          body: Center(child: Text('Error: $e')),
         ),
       ),
     );

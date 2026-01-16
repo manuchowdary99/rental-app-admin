@@ -15,6 +15,7 @@ class Category {
 
   factory Category.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
+
     return Category(
       id: doc.id,
       name: data['name'] ?? '',
@@ -22,10 +23,4 @@ class Category {
       createdAt: data['createdAt'] ?? Timestamp.now(),
     );
   }
-
-  Map<String, dynamic> toFirestore() => {
-    'name': name,
-    'isActive': isActive,
-    'createdAt': createdAt,
-  };
 }
