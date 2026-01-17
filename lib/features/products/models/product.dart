@@ -38,7 +38,9 @@ class Product {
       status: data['status'],
       riskScore: data['riskScore'] ?? 0,
       isActive: data['isActive'] ?? false,
-      createdAt: (data['createdAt'] as Timestamp).toDate(),
+      createdAt: data['createdAt'] is Timestamp
+          ? (data['createdAt'] as Timestamp).toDate()
+          : DateTime.now(),
     );
   }
 }

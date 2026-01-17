@@ -6,12 +6,10 @@ class FlaggedProductsScreen extends StatefulWidget {
   const FlaggedProductsScreen({super.key});
 
   @override
-  State<FlaggedProductsScreen> createState() =>
-      _FlaggedProductsScreenState();
+  State<FlaggedProductsScreen> createState() => _FlaggedProductsScreenState();
 }
 
-class _FlaggedProductsScreenState
-    extends State<FlaggedProductsScreen> {
+class _FlaggedProductsScreenState extends State<FlaggedProductsScreen> {
   final ProductService _productService = ProductService();
 
   @override
@@ -26,8 +24,7 @@ class _FlaggedProductsScreenState
       body: StreamBuilder<List<Product>>(
         stream: _productService.productsByStatus('flagged'),
         builder: (context, snapshot) {
-          if (snapshot.connectionState ==
-              ConnectionState.waiting) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
 
@@ -48,10 +45,10 @@ class _FlaggedProductsScreenState
               final product = products[index];
 
               return Card(
-                margin: const EdgeInsets.symmetric(
-                    horizontal: 16, vertical: 8),
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16)),
+                  borderRadius: BorderRadius.circular(16),
+                ),
                 child: ListTile(
                   leading: CircleAvatar(
                     backgroundColor: Colors.orange,
@@ -62,42 +59,36 @@ class _FlaggedProductsScreenState
                   ),
                   title: Text(
                     product.name,
-                    style:
-                        const TextStyle(fontWeight: FontWeight.w600),
+                    style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text('Category: ${product.categoryName}'),
-                      Text(
-                          'Price: ₹${product.price.toStringAsFixed(2)}'),
+                      Text('Price: ₹${product.price.toStringAsFixed(2)}'),
                       Text(
                         'Risk Score: ${product.riskScore}',
-                        style:
-                            const TextStyle(color: Colors.red),
+                        style: const TextStyle(color: Colors.red),
                       ),
-                      Text(
-                        'Status: ${product.status.toUpperCase()}',
-                      ),
+                      Text('Status: ${product.status.toUpperCase()}'),
                     ],
                   ),
                   trailing: Column(
-                    mainAxisAlignment:
-                        MainAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green),
-                        onPressed: () =>
-                            _approveProduct(product.id),
+                          backgroundColor: Colors.green,
+                        ),
+                        onPressed: () => _approveProduct(product.id),
                         child: const Text('Approve'),
                       ),
                       const SizedBox(height: 6),
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red),
-                        onPressed: () =>
-                            _rejectProduct(product.id),
+                          backgroundColor: Colors.red,
+                        ),
+                        onPressed: () => _rejectProduct(product.id),
                         child: const Text('Reject'),
                       ),
                     ],
@@ -158,7 +149,7 @@ class _FlaggedProductsScreenState
             Text('Status: ${product.status.toUpperCase()}'),
             const SizedBox(height: 8),
             Text(
-              'Created: ${product.createdAt.toDate().toString().split(" ").first}',
+              'Created: ${product.createdAt.toLocal().toString().split(" ").first}',
             ),
           ],
         ),

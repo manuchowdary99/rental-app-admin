@@ -2,11 +2,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/product.dart';
 
 class ProductService {
-  final _db = FirebaseFirestore.instance;
-  final _collection = 'products';
+  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final String _collection = 'products';
 
   // ---------------- ADD PRODUCT ----------------
-  // Always adds as PENDING (admin must approve)
   Future<void> addProduct(
     String name,
     String categoryId,
@@ -19,63 +18,45 @@ class ProductService {
       'categoryName': categoryName,
       'price': price,
       'status': 'pending', // pending | approved | rejected | flagged
+      'riskScore': 0,
+      'isActive': true,
       'createdAt': FieldValue.serverTimestamp(),
     });
   }
 
-  // ---------------- APPROVED PRODUCTS ----------------
-  Stream<List<Product>> approvedProductsStream() {
+  // ---------------- GENERIC STATUS STREAM ----------------
+  Stream<List<Product>> productsByStatus(String status) {
     return _db
         .collection(_collection)
-        .where('status', isEqualTo: 'approved')
+        .where('status', isEqualTo: status)
         .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snapshot) {
-      return snapshot.docs
-          .map((doc) => Product.fromFirestore(doc))
-          .toList();
-    });
+        .map(
+          (snapshot) =>
+              snapshot.docs.map((doc) => Product.fromFirestore(doc)).toList(),
+        );
   }
 
-  // ---------------- PENDING PRODUCTS ----------------
-  Stream<List<Product>> pendingProductsStream() {
-    return _db
-        .collection(_collection)
-        .where('status', isEqualTo: 'pending')
-        .orderBy('createdAt', descending: true)
-        .snapshots()
-        .map((snapshot) {
-      return snapshot.docs
-          .map((doc) => Product.fromFirestore(doc))
-          .toList();
-    });
-  }
+  // ---------------- BACKWARD COMPATIBILITY ----------------
+  Stream<List<Product>> approvedProductsStream() =>
+      productsByStatus('approved');
 
-  // ---------------- FLAGGED PRODUCTS ----------------
-  Stream<List<Product>> flaggedProductsStream() {
-    return _db
-        .collection(_collection)
-        .where('status', isEqualTo: 'flagged')
-        .orderBy('createdAt', descending: true)
-        .snapshots()
-        .map((snapshot) {
-      return snapshot.docs
-          .map((doc) => Product.fromFirestore(doc))
-          .toList();
-    });
-  }
+  Stream<List<Product>> pendingProductsStream() => productsByStatus('pending');
+
+  Stream<List<Product>> flaggedProductsStream() => productsByStatus('flagged');
 
   // ---------------- ADMIN ACTIONS ----------------
-
   Future<void> approveProduct(String productId) async {
     await _db.collection(_collection).doc(productId).update({
       'status': 'approved',
+      'updatedAt': FieldValue.serverTimestamp(),
     });
   }
 
   Future<void> rejectProduct(String productId) async {
     await _db.collection(_collection).doc(productId).update({
       'status': 'rejected',
+      'updatedAt': FieldValue.serverTimestamp(),
     });
   }
 
@@ -83,6 +64,7 @@ class ProductService {
     await _db.collection(_collection).doc(productId).update({
       'status': 'flagged',
       'riskScore': riskScore,
+      'updatedAt': FieldValue.serverTimestamp(),
     });
   }
 
