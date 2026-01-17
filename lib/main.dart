@@ -8,7 +8,12 @@ import 'core/services/auth_service.dart';
 import 'features/auth/presentation/login_screen.dart';
 import 'features/navigation/presentation/admin_main_navigation.dart';
 
-/// 🔹 Auth State Provider
+// MANAGEMENT SCREENS
+import 'features/users/presentation/users_management_screen.dart';
+import 'features/kyc/presentation/kyc_verification_screen.dart';
+import 'features/rentals/presentation/rentals_management_screen.dart';
+import 'features/complaints/presentation/complaints_management_screen.dart';
+
 final authStateChangesProvider = StreamProvider<User?>(
   (ref) => ref.read(authServiceProvider).authStateChanges(),
 );
@@ -37,6 +42,12 @@ class AdminApp extends ConsumerWidget {
           seedColor: const Color(0xFF781C2E),
         ),
       ),
+      routes: {
+        "/users": (context) => const UsersManagementScreen(),
+        "/kyc": (context) => const KycVerificationScreen(),
+        "/rentals": (context) => const RentalsManagementScreen(),
+        "/complaints": (context) => const ComplaintsManagementScreen(),
+      },
       home: authState.when(
         data: (user) =>
             user == null ? const LoginScreen() : const AdminMainNavigation(),

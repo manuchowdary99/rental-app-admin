@@ -1,12 +1,56 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:fl_chart/fl_chart.dart';
 
 import '../../../core/widgets/admin_widgets.dart';
 import '../../../core/services/auth_service.dart';
 
 class AdminDashboardScreen extends ConsumerWidget {
   const AdminDashboardScreen({super.key});
+
+  // =======================
+  // ANALYTICS HELPERS
+  // =======================
+
+  Stream<int> _kycCount(String status) {
+    return FirebaseFirestore.instance
+        .collection('kyc')
+        .where('status', isEqualTo: status)
+        .snapshots()
+        .map((snap) => snap.size);
+  }
+
+  Stream<List<FlSpot>> _monthlyOrdersGrowth() {
+    return FirebaseFirestore.instance
+        .collection('orders')
+        .snapshots()
+        .map((snapshot) {
+      final Map<int, int> monthlyCount = {};
+
+      for (var doc in snapshot.docs) {
+        final data = doc.data() as Map<String, dynamic>;
+        final ts = data['createdAt'];
+
+        if (ts is Timestamp) {
+          final month = ts.toDate().month;
+          monthlyCount[month] = (monthlyCount[month] ?? 0) + 1;
+        }
+      }
+
+      return List.generate(12, (index) {
+        final month = index + 1;
+        return FlSpot(
+          month.toDouble(),
+          (monthlyCount[month] ?? 0).toDouble(),
+        );
+      });
+    });
+  }
+
+  // =======================
+  // UI
+  // =======================
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -25,12 +69,22 @@ class AdminDashboardScreen extends ConsumerWidget {
               _buildRecentActivity(),
               const SizedBox(height: 24),
               _buildOrdersDistribution(),
+
+              // 🔥 NEW ANALYTICS
+              const SizedBox(height: 32),
+              _buildKycAnalytics(),
+              const SizedBox(height: 32),
+              _buildGrowthChart(),
             ],
           ),
         ),
       ),
     );
   }
+
+  // =======================
+  // HEADER
+  // =======================
 
   Widget _buildHeader(WidgetRef ref) {
     return Row(
@@ -103,6 +157,10 @@ class AdminDashboardScreen extends ConsumerWidget {
     );
   }
 
+  // =======================
+  // STATS CARDS
+  // =======================
+
   Widget _buildStatsCards() {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance.collection('orders').snapshots(),
@@ -115,20 +173,19 @@ class AdminDashboardScreen extends ConsumerWidget {
                   .collection('complaints')
                   .snapshots(),
               builder: (context, complaintsSnapshot) {
-                // Calculate real-time stats
                 String totalUsers = '0';
                 String activeRentals = '0';
                 String ongoingOrders = '0';
                 String openComplaints = '0';
 
                 if (usersSnapshot.hasData) {
-                  totalUsers = usersSnapshot.data!.docs.length.toString();
+                  totalUsers =
+                      usersSnapshot.data!.docs.length.toString();
                 }
 
                 if (ordersSnapshot.hasData) {
                   final orders = ordersSnapshot.data!.docs;
 
-                  // Count active rentals (confirmed, picked up, in use)
                   final activeCount = orders.where((doc) {
                     final status =
                         (doc.data() as Map<String, dynamic>)['status']
@@ -140,7 +197,6 @@ class AdminDashboardScreen extends ConsumerWidget {
                   }).length;
                   activeRentals = activeCount.toString();
 
-                  // Count ongoing orders (requested, confirmed, picked up)
                   final ongoingCount = orders.where((doc) {
                     final status =
                         (doc.data() as Map<String, dynamic>)['status']
@@ -154,13 +210,15 @@ class AdminDashboardScreen extends ConsumerWidget {
                 }
 
                 if (complaintsSnapshot.hasData) {
-                  final complaints = complaintsSnapshot.data!.docs;
+                  final complaints =
+                      complaintsSnapshot.data!.docs;
                   final openCount = complaints.where((doc) {
                     final status =
                         (doc.data() as Map<String, dynamic>)['status']
                             ?.toString()
                             .toLowerCase();
-                    return status == 'open' || status == 'in progress';
+                    return status == 'open' ||
+                        status == 'in progress';
                   }).length;
                   openComplaints = openCount.toString();
                 }
@@ -211,6 +269,10 @@ class AdminDashboardScreen extends ConsumerWidget {
     );
   }
 
+  // =======================
+  // RECENT ACTIVITY
+  // =======================
+
   Widget _buildRecentActivity() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -227,7 +289,7 @@ class AdminDashboardScreen extends ConsumerWidget {
             ),
             const Spacer(),
             TextButton(
-              onPressed: () {}, // Navigate to orders
+              onPressed: () {},
               child: const Text(
                 'View All',
                 style: TextStyle(
@@ -240,11 +302,137 @@ class AdminDashboardScreen extends ConsumerWidget {
         ),
         const SizedBox(height: 16),
         Column(
-          children: List.generate(5, (index) => _buildRecentOrderItem(index)),
+          children: List.generate(
+              5, (index) => _buildRecentOrderItem(index)),
         ),
       ],
     );
   }
+
+  // =======================
+  // ANALYTICS CARDS
+  // =======================
+
+  Widget _buildKycAnalytics() {
+    return AdminCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'KYC Status Overview',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF1E293B),
+            ),
+          ),
+          const SizedBox(height: 20),
+          SizedBox(
+            height: 220,
+            child: StreamBuilder<List<int>>(
+              stream: _kycCount("pending").asyncMap((p) async {
+                final a = await _kycCount("approved").first;
+                return [p, a];
+              }),
+              builder: (context, snapshot) {
+                final data = snapshot.data ?? [0, 0];
+
+                return PieChart(
+                  PieChartData(
+                    centerSpaceRadius: 40,
+                    sectionsSpace: 4,
+                    sections: [
+                      PieChartSectionData(
+                        value: data[0].toDouble(),
+                        title: "Pending",
+                        color: Colors.orange,
+                        radius: 60,
+                      ),
+                      PieChartSectionData(
+                        value: data[1].toDouble(),
+                        title: "Approved",
+                        color: Colors.green,
+                        radius: 60,
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGrowthChart() {
+    return AdminCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Monthly Orders Growth',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF1E293B),
+            ),
+          ),
+          const SizedBox(height: 20),
+          SizedBox(
+            height: 240,
+            child: StreamBuilder<List<FlSpot>>(
+              stream: _monthlyOrdersGrowth(),
+              builder: (context, snapshot) {
+                final spots = snapshot.data ?? [];
+
+                return LineChart(
+                  LineChartData(
+                    gridData: FlGridData(show: false),
+                    titlesData: FlTitlesData(
+                      leftTitles: AxisTitles(
+                        sideTitles:
+                            SideTitles(showTitles: true),
+                      ),
+                      bottomTitles: AxisTitles(
+                        sideTitles: SideTitles(
+                          showTitles: true,
+                          getTitlesWidget: (value, _) {
+                            return Text("M${value.toInt()}");
+                          },
+                        ),
+                      ),
+                    ),
+                    borderData:
+                        FlBorderData(show: false),
+                    lineBarsData: [
+                      LineChartBarData(
+                        spots: spots,
+                        isCurved: true,
+                        color: const Color(0xFF781C2E),
+                        barWidth: 3,
+                        dotData:
+                            FlDotData(show: false),
+                        belowBarData: BarAreaData(
+                          show: true,
+                          color: const Color(0xFF781C2E)
+                              .withOpacity(0.1),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // =======================
+  // HELPERS
+  // =======================
 
   Widget _buildRecentOrderItem(int index) {
     final orders = [
@@ -313,7 +501,8 @@ class AdminDashboardScreen extends ConsumerWidget {
           const SizedBox(width: 16),
           Expanded(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
@@ -322,13 +511,16 @@ class AdminDashboardScreen extends ConsumerWidget {
                       style: const TextStyle(
                         fontSize: 12,
                         color: Colors.grey,
-                        fontWeight: FontWeight.w500,
+                        fontWeight:
+                            FontWeight.w500,
                       ),
                     ),
                     const Spacer(),
                     Text(
                       order['time'] as String,
-                      style: const TextStyle(fontSize: 11, color: Colors.grey),
+                      style: const TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey),
                     ),
                   ],
                 ),
@@ -337,16 +529,21 @@ class AdminDashboardScreen extends ConsumerWidget {
                   '${order['user']} - ${order['item']}',
                   style: const TextStyle(
                     fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF1E293B),
+                    fontWeight:
+                        FontWeight.w600,
+                    color:
+                        Color(0xFF1E293B),
                   ),
                   maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                  overflow:
+                      TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 4),
                 StatusChip(
-                  text: order['status'] as String,
-                  color: order['color'] as Color,
+                  text:
+                      order['status'] as String,
+                  color:
+                      order['color'] as Color,
                   isSmall: true,
                 ),
               ],
@@ -354,110 +551,6 @@ class AdminDashboardScreen extends ConsumerWidget {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildOrdersDistribution() {
-    return AdminCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Orders Status Distribution',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF1E293B),
-            ),
-          ),
-          const SizedBox(height: 20),
-          _buildDistributionItem('Delivered', 45, const Color(0xFF781C2E)),
-          const SizedBox(height: 12),
-          _buildDistributionItem('In Use', 28, const Color(0xFF8B2635)),
-          const SizedBox(height: 12),
-          _buildDistributionItem('Pending', 18, const Color(0xFF9E2F3C)),
-          const SizedBox(height: 12),
-          _buildDistributionItem('Returned', 9, const Color(0xFFB13843)),
-          const SizedBox(height: 16),
-          Container(
-            height: 60,
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF9F6EE),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Row(
-              children: [
-                Icon(Icons.trending_up_rounded, color: Colors.green, size: 20),
-                SizedBox(width: 8),
-                Text(
-                  'Orders increased by 23% this week',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.green,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDistributionItem(String label, int percentage, Color color) {
-    return Row(
-      children: [
-        Container(
-          width: 12,
-          height: 12,
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(6),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Text(
-            label,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: Color(0xFF1E293B),
-            ),
-          ),
-        ),
-        Text(
-          '$percentage%',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
-            color: color,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          flex: 2,
-          child: Container(
-            height: 6,
-            decoration: BoxDecoration(
-              color: Colors.grey[200],
-              borderRadius: BorderRadius.circular(3),
-            ),
-            child: FractionallySizedBox(
-              alignment: Alignment.centerLeft,
-              widthFactor: percentage / 100,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: color,
-                  borderRadius: BorderRadius.circular(3),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ],
     );
   }
 
@@ -476,5 +569,110 @@ class AdminDashboardScreen extends ConsumerWidget {
       default:
         return Icons.circle;
     }
+  }
+
+  Widget _buildOrdersDistribution() {
+    return AdminCard(
+      child: Column(
+        crossAxisAlignment:
+            CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Orders Status Distribution',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight:
+                  FontWeight.bold,
+              color:
+                  Color(0xFF1E293B),
+            ),
+          ),
+          const SizedBox(height: 20),
+          _buildDistributionItem(
+              'Delivered',
+              45,
+              const Color(0xFF781C2E)),
+          const SizedBox(height: 12),
+          _buildDistributionItem(
+              'In Use',
+              28,
+              const Color(0xFF8B2635)),
+          const SizedBox(height: 12),
+          _buildDistributionItem(
+              'Pending',
+              18,
+              const Color(0xFF9E2F3C)),
+          const SizedBox(height: 12),
+          _buildDistributionItem(
+              'Returned',
+              9,
+              const Color(0xFFB13843)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDistributionItem(
+      String label, int percentage, Color color) {
+    return Row(
+      children: [
+        Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius:
+                BorderRadius.circular(6),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            label,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight:
+                  FontWeight.w500,
+              color:
+                  Color(0xFF1E293B),
+            ),
+          ),
+        ),
+        Text(
+          '$percentage%',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight:
+                FontWeight.bold,
+            color: color,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          flex: 2,
+          child: Container(
+            height: 6,
+            decoration: BoxDecoration(
+              color: Colors.grey[200],
+              borderRadius:
+                  BorderRadius.circular(3),
+            ),
+            child: FractionallySizedBox(
+              alignment:
+                  Alignment.centerLeft,
+              widthFactor:
+                  percentage / 100,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius:
+                      BorderRadius.circular(3),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
   }
 }

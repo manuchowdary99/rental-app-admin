@@ -17,14 +17,15 @@ class _ProductsScreenState extends State<ProductsScreen> {
   final ProductService _productService = ProductService();
   final CategoryService _categoryService = CategoryService();
 
-  final _nameController = TextEditingController();
-  final _priceController = TextEditingController();
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _priceController = TextEditingController();
 
   String? _selectedCategoryId;
   String? _selectedCategoryName;
 
-  // ---------------- UI ----------------
-
+  // =============================
+  // UI
+  // =============================
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -43,16 +44,18 @@ class _ProductsScreenState extends State<ProductsScreen> {
     );
   }
 
-  // ---------------- ADD PRODUCT FORM ----------------
-
+  // =============================
+  // ADD PRODUCT FORM
+  // =============================
   Widget _buildAddProductForm() {
     return Container(
-      padding: const EdgeInsets.all(20),
       color: Colors.white,
+      padding: const EdgeInsets.all(20),
       child: Column(
         children: [
           Row(
             children: [
+              // PRODUCT NAME
               Expanded(
                 child: TextField(
                   controller: _nameController,
@@ -63,9 +66,12 @@ class _ProductsScreenState extends State<ProductsScreen> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
+                  onChanged: (_) => setState(() {}),
                 ),
               ),
               const SizedBox(width: 12),
+
+              // PRICE
               SizedBox(
                 width: 120,
                 child: TextField(
@@ -78,15 +84,16 @@ class _ProductsScreenState extends State<ProductsScreen> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
+                  onChanged: (_) => setState(() {}),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 14),
 
-          // CATEGORY DROPDOWN
           Row(
             children: [
+              // CATEGORY DROPDOWN
               Expanded(
                 child: StreamBuilder<List<Category>>(
                   stream: _categoryService.categoriesStream,
@@ -109,9 +116,8 @@ class _ProductsScreenState extends State<ProductsScreen> {
                         );
                       }).toList(),
                       onChanged: (value) {
-                        final selected = categories.firstWhere(
-                          (c) => c.id == value,
-                        );
+                        final selected =
+                            categories.firstWhere((c) => c.id == value);
 
                         setState(() {
                           _selectedCategoryId = selected.id;
@@ -122,8 +128,10 @@ class _ProductsScreenState extends State<ProductsScreen> {
                   },
                 ),
               ),
+
               const SizedBox(width: 12),
 
+              // ADD BUTTON
               ElevatedButton.icon(
                 onPressed: _canAddProduct() ? _addProduct : null,
                 icon: const Icon(Icons.add),
@@ -139,8 +147,9 @@ class _ProductsScreenState extends State<ProductsScreen> {
     );
   }
 
-  // ---------------- PRODUCTS LIST ----------------
-
+  // =============================
+  // PRODUCTS LIST (APPROVED)
+  // =============================
   Widget _buildProductsList() {
     return StreamBuilder<List<Product>>(
       stream: _productService.approvedProductsStream(),
@@ -195,24 +204,23 @@ class _ProductsScreenState extends State<ProductsScreen> {
     );
   }
 
-  // ---------------- LOGIC ----------------
-
+  // =============================
+  // LOGIC
+  // =============================
   bool _canAddProduct() {
     return _nameController.text.trim().isNotEmpty &&
         _priceController.text.trim().isNotEmpty &&
         double.tryParse(_priceController.text) != null &&
-        _selectedCategoryId != null;
+        _selectedCategoryId != null &&
+        _selectedCategoryName != null;
   }
 
   Future<void> _addProduct() async {
-    final name = _nameController.text.trim();
-    final price = double.parse(_priceController.text);
-
     await _productService.addProduct(
-      name,
-      _selectedCategoryId!,
-      _selectedCategoryName!,
-      price,
+      name: _nameController.text.trim(),
+      price: double.parse(_priceController.text),
+      categoryId: _selectedCategoryId!,
+      categoryName: _selectedCategoryName!,
     );
 
     _nameController.clear();
@@ -230,8 +238,9 @@ class _ProductsScreenState extends State<ProductsScreen> {
     );
   }
 
-  // ---------------- DETAILS POPUP ----------------
-
+  // =============================
+  // DETAILS POPUP
+  // =============================
   void _showProductDetails(Product product) {
     showDialog(
       context: context,

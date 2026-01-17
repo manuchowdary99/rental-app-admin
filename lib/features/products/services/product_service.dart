@@ -2,73 +2,108 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/product.dart';
 
 class ProductService {
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final String _collection = 'products';
 
-  // ---------------- ADD PRODUCT ----------------
-  Future<void> addProduct(
-    String name,
-    String categoryId,
-    String categoryName,
-    double price,
-  ) async {
-    await _db.collection(_collection).add({
-      'name': name,
-      'categoryId': categoryId,
-      'categoryName': categoryName,
-      'price': price,
-      'status': 'pending', // pending | approved | rejected | flagged
-      'riskScore': 0,
-      'isActive': true,
-      'createdAt': FieldValue.serverTimestamp(),
-    });
-  }
+  // ---------------- CREATE PRODUCT ----------------
+  Future<void> addProduct({
+    required String name,
+    required double price,
+    required String categoryId,
+    required String categoryName,
+  }) async {
+    bool flagged = false;
+    int riskScore = 0;
+    String status = 'approved';
 
-  // ---------------- GENERIC STATUS STREAM ----------------
-  Stream<List<Product>> productsByStatus(String status) {
-    return _db
+    // AUTO FLAG RULES
+    if (price > 100000) {
+      flagged = true;
+      riskScore += 50;
+    }
+
+    if (name.toLowerCase().contains('sofa') &&
+        categoryName.toLowerCase() != 'furniture') {
+      flagged = true;
+      riskScore += 50;
+    }
+
+    if (flagged) {
+      status = 'pending';
+    }
+
+    final product = Product(
+      id: '',
+      name: name,
+      price: price,
+      categoryId: categoryId,
+      categoryName: categoryName,
+      isActive: true,
+      isFlagged: flagged,
+      riskScore: riskScore,
+      status: status,
+      createdAt: DateTime.now(),
+    );
+
+    await _firestore
         .collection(_collection)
-        .where('status', isEqualTo: status)
-        .orderBy('createdAt', descending: true)
-        .snapshots()
-        .map(
-          (snapshot) =>
-              snapshot.docs.map((doc) => Product.fromFirestore(doc)).toList(),
-        );
+        .add(product.toFirestore());
   }
 
-  // ---------------- BACKWARD COMPATIBILITY ----------------
-  Stream<List<Product>> approvedProductsStream() =>
-      productsByStatus('approved');
+  // ---------------- STREAMS ----------------
+  Stream<List<Product>> approvedProductsStream() {
+    return _firestore
+        .collection(_collection)
+        .where('status', isEqualTo: 'approved')
+        .snapshots()
+        .map(_mapProducts);
+  }
 
-  Stream<List<Product>> pendingProductsStream() => productsByStatus('pending');
+  Stream<List<Product>> pendingProductsStream() {
+    return _firestore
+        .collection(_collection)
+        .where('status', isEqualTo: 'pending')
+        .snapshots()
+        .map(_mapProducts);
+  }
 
-  Stream<List<Product>> flaggedProductsStream() => productsByStatus('flagged');
+  Stream<List<Product>> flaggedProductsStream() {
+    return _firestore
+        .collection(_collection)
+        .where('isFlagged', isEqualTo: true)
+        .snapshots()
+        .map(_mapProducts);
+  }
 
-  // ---------------- ADMIN ACTIONS ----------------
+  // ---------------- ACTIONS ----------------
   Future<void> approveProduct(String productId) async {
-    await _db.collection(_collection).doc(productId).update({
+    await _firestore.collection(_collection).doc(productId).update({
       'status': 'approved',
-      'updatedAt': FieldValue.serverTimestamp(),
+      'isFlagged': false,
+      'riskScore': 0,
     });
   }
 
   Future<void> rejectProduct(String productId) async {
-    await _db.collection(_collection).doc(productId).update({
+    await _firestore.collection(_collection).doc(productId).update({
       'status': 'rejected',
-      'updatedAt': FieldValue.serverTimestamp(),
     });
   }
 
-  Future<void> flagProduct(String productId, int riskScore) async {
-    await _db.collection(_collection).doc(productId).update({
-      'status': 'flagged',
-      'riskScore': riskScore,
-      'updatedAt': FieldValue.serverTimestamp(),
+  Future<void> toggleProduct(String productId, bool isActive) async {
+    await _firestore.collection(_collection).doc(productId).update({
+      'isActive': !isActive,
     });
   }
 
   Future<void> deleteProduct(String productId) async {
-    await _db.collection(_collection).doc(productId).delete();
+    await _firestore.collection(_collection).doc(productId).delete();
+  }
+
+  // ---------------- MAPPER ----------------
+  List<Product> _mapProducts(QuerySnapshot snapshot) {
+    return snapshot.docs
+        .map((doc) => Product.fromFirestore(doc))
+        .toList();
   }
 }

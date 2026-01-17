@@ -6,10 +6,10 @@ class Product {
   final double price;
   final String categoryId;
   final String categoryName;
-  final String ownerId;
-  final String status; // pending, approved, rejected, flagged
-  final int riskScore;
   final bool isActive;
+  final bool isFlagged;
+  final int riskScore;
+  final String status; // pending | approved | rejected
   final DateTime createdAt;
 
   Product({
@@ -18,10 +18,10 @@ class Product {
     required this.price,
     required this.categoryId,
     required this.categoryName,
-    required this.ownerId,
-    required this.status,
-    required this.riskScore,
     required this.isActive,
+    required this.isFlagged,
+    required this.riskScore,
+    required this.status,
     required this.createdAt,
   });
 
@@ -34,13 +34,25 @@ class Product {
       price: (data['price'] as num).toDouble(),
       categoryId: data['categoryId'],
       categoryName: data['categoryName'],
-      ownerId: data['ownerId'],
-      status: data['status'],
+      isActive: data['isActive'] ?? true,
+      isFlagged: data['isFlagged'] ?? false,
       riskScore: data['riskScore'] ?? 0,
-      isActive: data['isActive'] ?? false,
-      createdAt: data['createdAt'] is Timestamp
-          ? (data['createdAt'] as Timestamp).toDate()
-          : DateTime.now(),
+      status: data['status'] ?? 'pending',
+      createdAt: (data['createdAt'] as Timestamp).toDate(),
     );
+  }
+
+  Map<String, dynamic> toFirestore() {
+    return {
+      'name': name,
+      'price': price,
+      'categoryId': categoryId,
+      'categoryName': categoryName,
+      'isActive': isActive,
+      'isFlagged': isFlagged,
+      'riskScore': riskScore,
+      'status': status,
+      'createdAt': Timestamp.fromDate(createdAt),
+    };
   }
 }

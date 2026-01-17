@@ -21,11 +21,22 @@ class _FlaggedProductsScreenState extends State<FlaggedProductsScreen> {
         backgroundColor: const Color(0xFF781C2E),
         foregroundColor: Colors.white,
       ),
+
+      // ✅ FIXED STREAM
       body: StreamBuilder<List<Product>>(
-        stream: _productService.productsByStatus('flagged'),
+        stream: _productService.flaggedProductsStream(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
+          }
+
+          if (snapshot.hasError) {
+            return const Center(
+              child: Text(
+                'Error loading flagged products',
+                style: TextStyle(color: Colors.red),
+              ),
+            );
           }
 
           final products = snapshot.data ?? [];
@@ -45,7 +56,8 @@ class _FlaggedProductsScreenState extends State<FlaggedProductsScreen> {
               final product = products[index];
 
               return Card(
-                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                margin:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
@@ -65,12 +77,16 @@ class _FlaggedProductsScreenState extends State<FlaggedProductsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text('Category: ${product.categoryName}'),
-                      Text('Price: ₹${product.price.toStringAsFixed(2)}'),
+                      Text(
+                        'Price: ₹${product.price.toStringAsFixed(2)}',
+                      ),
                       Text(
                         'Risk Score: ${product.riskScore}',
                         style: const TextStyle(color: Colors.red),
                       ),
-                      Text('Status: ${product.status.toUpperCase()}'),
+                      Text(
+                        'Status: ${product.status.toUpperCase()}',
+                      ),
                     ],
                   ),
                   trailing: Column(
@@ -79,6 +95,8 @@ class _FlaggedProductsScreenState extends State<FlaggedProductsScreen> {
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.green,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 6),
                         ),
                         onPressed: () => _approveProduct(product.id),
                         child: const Text('Approve'),
@@ -87,6 +105,8 @@ class _FlaggedProductsScreenState extends State<FlaggedProductsScreen> {
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.red,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 6),
                         ),
                         onPressed: () => _rejectProduct(product.id),
                         child: const Text('Reject'),
@@ -103,9 +123,9 @@ class _FlaggedProductsScreenState extends State<FlaggedProductsScreen> {
     );
   }
 
-  // ---------------- ADMIN ACTIONS ----------------
+  // ================= ADMIN ACTIONS =================
 
-  void _approveProduct(String productId) async {
+  Future<void> _approveProduct(String productId) async {
     await _productService.approveProduct(productId);
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -116,7 +136,7 @@ class _FlaggedProductsScreenState extends State<FlaggedProductsScreen> {
     );
   }
 
-  void _rejectProduct(String productId) async {
+  Future<void> _rejectProduct(String productId) async {
     await _productService.rejectProduct(productId);
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -127,7 +147,7 @@ class _FlaggedProductsScreenState extends State<FlaggedProductsScreen> {
     );
   }
 
-  // ---------------- DETAILS POPUP ----------------
+  // ================= DETAILS POPUP =================
 
   void _showProductDetails(Product product) {
     showDialog(
@@ -142,7 +162,9 @@ class _FlaggedProductsScreenState extends State<FlaggedProductsScreen> {
             const SizedBox(height: 8),
             Text('Category: ${product.categoryName}'),
             const SizedBox(height: 8),
-            Text('Price: ₹${product.price.toStringAsFixed(2)}'),
+            Text(
+              'Price: ₹${product.price.toStringAsFixed(2)}',
+            ),
             const SizedBox(height: 8),
             Text('Risk Score: ${product.riskScore}'),
             const SizedBox(height: 8),
