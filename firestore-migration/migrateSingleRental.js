@@ -1,0 +1,80 @@
+const admin = require("firebase-admin");
+const serviceAccount = require("./serviceAccountKey.json");
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+});
+
+const db = admin.firestore();
+
+// 🔴 PUT ONE REAL RENTAL ID FROM YOUR DB HERE
+const RENTAL_ID = "#ORD-10B67961";
+
+async function migrateSingleRental() {
+  const rentalRef = db.collection("rentals").doc(RENTAL_ID);
+  const rentalSnap = await rentalRef.get();
+
+  if (!rentalSnap.exists) {
+    console.error("❌ Rental not found:", RENTAL_ID);
+    return;
+  }
+
+  const rental = rentalSnap.data();
+  const orderRef = db.collection("orders").doc(RENTAL_ID);
+
+  // 1️⃣ Order document
+  await orderRef.set({
+    orderNumber: rental.id ?? RENTAL_ID,
+    orderType: "rental",
+    orderStatus: rental.status ?? "unknown",
+    paymentStatus: "unknown",
+
+    totalAmount: rental.totalAmount ?? 0,
+    finalAmount: rental.totalAmount ?? 0,
+    depositAmount: null,
+    taxAmount: 0,
+
+    userId: rental.renterId ?? null,
+
+    createdAt: rental.createdAt ?? admin.firestore.FieldValue.serverTimestamp(),
+    updatedAt: rental.updatedAt ?? admin.firestore.FieldValue.serverTimestamp(),
+  });
+
+  // 2️⃣ Item snapshot
+  await orderRef.collection("items").add({
+    productId: rental.itemId,
+    productName: rental.itemName,
+
+    quantity: 1,
+    unitPrice: rental.totalAmount ?? 0,
+    totalPrice: rental.totalAmount ?? 0,
+
+    rentalStartDate: rental.startDate,
+    rentalEndDate: rental.endDate,
+
+    createdAt: rental.createdAt ?? admin.firestore.FieldValue.serverTimestamp(),
+  });
+
+  // 3️⃣ Rental lifecycle
+  await orderRef.collection("rentals").doc("details").set({
+    depositAmount: null,
+
+    startDate: rental.startDate,
+    endDate: rental.endDate,
+
+    returnStatus: "pending",
+    returnedAt: null,
+
+    refundStatus: "pending",
+    refundedAt: null,
+  });
+
+  console.log(`✅ Rental ${RENTAL_ID} migrated successfully`);
+}
+
+migrateSingleRental()
+  .then(() => process.exit(0))
+  .catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });

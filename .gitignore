@@ -44,4 +44,8 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 serviceAccountKey.json
+firestore-migration/serviceAccountKey.json
+# Node / Migration scripts
+node_modules/
+firestore-migration/node_modules/
 

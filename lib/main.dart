@@ -11,7 +11,6 @@ import 'features/navigation/presentation/admin_main_navigation.dart';
 // MANAGEMENT SCREENS
 import 'features/users/presentation/users_management_screen.dart';
 import 'features/kyc/presentation/kyc_verification_screen.dart';
-import 'features/rentals/presentation/rentals_management_screen.dart';
 import 'features/complaints/presentation/complaints_management_screen.dart';
 
 final authStateChangesProvider = StreamProvider<User?>(
@@ -35,7 +34,7 @@ class AdminApp extends ConsumerWidget {
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Rental Admin',
+      title: 'Admin Console',
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
@@ -45,7 +44,6 @@ class AdminApp extends ConsumerWidget {
       routes: {
         "/users": (context) => const UsersManagementScreen(),
         "/kyc": (context) => const KycVerificationScreen(),
-        "/rentals": (context) => const RentalsManagementScreen(),
         "/complaints": (context) => const ComplaintsManagementScreen(),
       },
       home: authState.when(

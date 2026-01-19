@@ -69,8 +69,6 @@ class AdminDashboardScreen extends ConsumerWidget {
               _buildRecentActivity(),
               const SizedBox(height: 24),
               _buildOrdersDistribution(),
-
-              // 🔥 NEW ANALYTICS
               const SizedBox(height: 32),
               _buildKycAnalytics(),
               const SizedBox(height: 32),
@@ -125,7 +123,7 @@ class AdminDashboardScreen extends ConsumerWidget {
                 ),
               ),
               Text(
-                'Rental platform overview',
+                'Orders & transactions overview',
                 style: TextStyle(fontSize: 14, color: Colors.grey),
               ),
             ],
@@ -174,52 +172,52 @@ class AdminDashboardScreen extends ConsumerWidget {
                   .snapshots(),
               builder: (context, complaintsSnapshot) {
                 String totalUsers = '0';
-                String activeRentals = '0';
+                String activeOrders = '0';
                 String ongoingOrders = '0';
                 String openComplaints = '0';
 
                 if (usersSnapshot.hasData) {
-                  totalUsers =
-                      usersSnapshot.data!.docs.length.toString();
+                  totalUsers = usersSnapshot.data!.docs.length.toString();
                 }
 
                 if (ordersSnapshot.hasData) {
                   final orders = ordersSnapshot.data!.docs;
 
                   final activeCount = orders.where((doc) {
+                    final data = doc.data() as Map<String, dynamic>;
                     final status =
-                        (doc.data() as Map<String, dynamic>)['status']
-                            ?.toString()
-                            .toLowerCase();
-                    return status == 'confirmed' ||
-                        status == 'picked up' ||
-                        status == 'in use';
+                        data['orderStatus']?.toString().toLowerCase();
+
+                    return status == 'paid' ||
+                        status == 'active' ||
+                        status == 'in_use';
                   }).length;
-                  activeRentals = activeCount.toString();
+
+                  activeOrders = activeCount.toString();
 
                   final ongoingCount = orders.where((doc) {
+                    final data = doc.data() as Map<String, dynamic>;
                     final status =
-                        (doc.data() as Map<String, dynamic>)['status']
-                            ?.toString()
-                            .toLowerCase();
+                        data['orderStatus']?.toString().toLowerCase();
+
                     return status == 'requested' ||
-                        status == 'confirmed' ||
-                        status == 'picked up';
+                        status == 'paid' ||
+                        status == 'active';
                   }).length;
+
                   ongoingOrders = ongoingCount.toString();
                 }
 
                 if (complaintsSnapshot.hasData) {
-                  final complaints =
-                      complaintsSnapshot.data!.docs;
+                  final complaints = complaintsSnapshot.data!.docs;
+
                   final openCount = complaints.where((doc) {
-                    final status =
-                        (doc.data() as Map<String, dynamic>)['status']
-                            ?.toString()
-                            .toLowerCase();
-                    return status == 'open' ||
-                        status == 'in progress';
+                    final data = doc.data() as Map<String, dynamic>;
+                    final status = data['status']?.toString().toLowerCase();
+
+                    return status == 'open' || status == 'in progress';
                   }).length;
+
                   openComplaints = openCount.toString();
                 }
 
@@ -239,18 +237,18 @@ class AdminDashboardScreen extends ConsumerWidget {
                       subtitle: 'Registered users',
                     ),
                     StatCard(
-                      title: 'Active Rentals',
-                      value: activeRentals,
+                      title: 'Active Orders',
+                      value: activeOrders,
                       icon: Icons.shopping_bag_rounded,
                       color: const Color(0xFF8B2635),
-                      subtitle: 'Currently active',
+                      subtitle: 'Currently in progress',
                     ),
                     StatCard(
                       title: 'Ongoing Orders',
                       value: ongoingOrders,
                       icon: Icons.local_shipping_rounded,
                       color: const Color(0xFF9E2F3C),
-                      subtitle: 'In process',
+                      subtitle: 'Being processed',
                     ),
                     StatCard(
                       title: 'Open Complaints',
@@ -270,7 +268,7 @@ class AdminDashboardScreen extends ConsumerWidget {
   }
 
   // =======================
-  // RECENT ACTIVITY
+  // RECENT ACTIVITY (UI ONLY)
   // =======================
 
   Widget _buildRecentActivity() {
@@ -302,15 +300,14 @@ class AdminDashboardScreen extends ConsumerWidget {
         ),
         const SizedBox(height: 16),
         Column(
-          children: List.generate(
-              5, (index) => _buildRecentOrderItem(index)),
+          children: List.generate(5, (index) => _buildRecentOrderItem(index)),
         ),
       ],
     );
   }
 
   // =======================
-  // ANALYTICS CARDS
+  // ANALYTICS
   // =======================
 
   Widget _buildKycAnalytics() {
@@ -390,33 +387,27 @@ class AdminDashboardScreen extends ConsumerWidget {
                   LineChartData(
                     gridData: FlGridData(show: false),
                     titlesData: FlTitlesData(
-                      leftTitles: AxisTitles(
-                        sideTitles:
-                            SideTitles(showTitles: true),
-                      ),
+                      leftTitles:
+                          AxisTitles(sideTitles: SideTitles(showTitles: true)),
                       bottomTitles: AxisTitles(
                         sideTitles: SideTitles(
                           showTitles: true,
-                          getTitlesWidget: (value, _) {
-                            return Text("M${value.toInt()}");
-                          },
+                          getTitlesWidget: (value, _) =>
+                              Text("M${value.toInt()}"),
                         ),
                       ),
                     ),
-                    borderData:
-                        FlBorderData(show: false),
+                    borderData: FlBorderData(show: false),
                     lineBarsData: [
                       LineChartBarData(
                         spots: spots,
                         isCurved: true,
                         color: const Color(0xFF781C2E),
                         barWidth: 3,
-                        dotData:
-                            FlDotData(show: false),
+                        dotData: FlDotData(show: false),
                         belowBarData: BarAreaData(
                           show: true,
-                          color: const Color(0xFF781C2E)
-                              .withOpacity(0.1),
+                          color: const Color(0xFF781C2E).withOpacity(0.1),
                         ),
                       ),
                     ],
@@ -431,7 +422,7 @@ class AdminDashboardScreen extends ConsumerWidget {
   }
 
   // =======================
-  // HELPERS
+  // UI HELPERS
   // =======================
 
   Widget _buildRecentOrderItem(int index) {
@@ -501,8 +492,7 @@ class AdminDashboardScreen extends ConsumerWidget {
           const SizedBox(width: 16),
           Expanded(
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
@@ -511,16 +501,16 @@ class AdminDashboardScreen extends ConsumerWidget {
                       style: const TextStyle(
                         fontSize: 12,
                         color: Colors.grey,
-                        fontWeight:
-                            FontWeight.w500,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                     const Spacer(),
                     Text(
                       order['time'] as String,
                       style: const TextStyle(
-                          fontSize: 11,
-                          color: Colors.grey),
+                        fontSize: 11,
+                        color: Colors.grey,
+                      ),
                     ),
                   ],
                 ),
@@ -529,21 +519,16 @@ class AdminDashboardScreen extends ConsumerWidget {
                   '${order['user']} - ${order['item']}',
                   style: const TextStyle(
                     fontSize: 14,
-                    fontWeight:
-                        FontWeight.w600,
-                    color:
-                        Color(0xFF1E293B),
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF1E293B),
                   ),
                   maxLines: 1,
-                  overflow:
-                      TextOverflow.ellipsis,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 4),
                 StatusChip(
-                  text:
-                      order['status'] as String,
-                  color:
-                      order['color'] as Color,
+                  text: order['status'] as String,
+                  color: order['color'] as Color,
                   isSmall: true,
                 ),
               ],
@@ -574,46 +559,30 @@ class AdminDashboardScreen extends ConsumerWidget {
   Widget _buildOrdersDistribution() {
     return AdminCard(
       child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
             'Orders Status Distribution',
             style: TextStyle(
               fontSize: 18,
-              fontWeight:
-                  FontWeight.bold,
-              color:
-                  Color(0xFF1E293B),
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF1E293B),
             ),
           ),
           const SizedBox(height: 20),
-          _buildDistributionItem(
-              'Delivered',
-              45,
-              const Color(0xFF781C2E)),
+          _buildDistributionItem('Delivered', 45, const Color(0xFF781C2E)),
           const SizedBox(height: 12),
-          _buildDistributionItem(
-              'In Use',
-              28,
-              const Color(0xFF8B2635)),
+          _buildDistributionItem('In Use', 28, const Color(0xFF8B2635)),
           const SizedBox(height: 12),
-          _buildDistributionItem(
-              'Pending',
-              18,
-              const Color(0xFF9E2F3C)),
+          _buildDistributionItem('Pending', 18, const Color(0xFF9E2F3C)),
           const SizedBox(height: 12),
-          _buildDistributionItem(
-              'Returned',
-              9,
-              const Color(0xFFB13843)),
+          _buildDistributionItem('Returned', 9, const Color(0xFFB13843)),
         ],
       ),
     );
   }
 
-  Widget _buildDistributionItem(
-      String label, int percentage, Color color) {
+  Widget _buildDistributionItem(String label, int percentage, Color color) {
     return Row(
       children: [
         Container(
@@ -621,8 +590,7 @@ class AdminDashboardScreen extends ConsumerWidget {
           height: 12,
           decoration: BoxDecoration(
             color: color,
-            borderRadius:
-                BorderRadius.circular(6),
+            borderRadius: BorderRadius.circular(6),
           ),
         ),
         const SizedBox(width: 12),
@@ -631,10 +599,8 @@ class AdminDashboardScreen extends ConsumerWidget {
             label,
             style: const TextStyle(
               fontSize: 14,
-              fontWeight:
-                  FontWeight.w500,
-              color:
-                  Color(0xFF1E293B),
+              fontWeight: FontWeight.w500,
+              color: Color(0xFF1E293B),
             ),
           ),
         ),
@@ -642,8 +608,7 @@ class AdminDashboardScreen extends ConsumerWidget {
           '$percentage%',
           style: TextStyle(
             fontSize: 14,
-            fontWeight:
-                FontWeight.bold,
+            fontWeight: FontWeight.bold,
             color: color,
           ),
         ),
@@ -654,19 +619,15 @@ class AdminDashboardScreen extends ConsumerWidget {
             height: 6,
             decoration: BoxDecoration(
               color: Colors.grey[200],
-              borderRadius:
-                  BorderRadius.circular(3),
+              borderRadius: BorderRadius.circular(3),
             ),
             child: FractionallySizedBox(
-              alignment:
-                  Alignment.centerLeft,
-              widthFactor:
-                  percentage / 100,
+              alignment: Alignment.centerLeft,
+              widthFactor: percentage / 100,
               child: Container(
                 decoration: BoxDecoration(
                   color: color,
-                  borderRadius:
-                      BorderRadius.circular(3),
+                  borderRadius: BorderRadius.circular(3),
                 ),
               ),
             ),
