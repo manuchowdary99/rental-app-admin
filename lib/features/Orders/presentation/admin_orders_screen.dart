@@ -17,6 +17,18 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
 
   final Map<String, String> _userCache = {};
 
+  // -------- SAFE HELPERS --------
+  String _safeText(dynamic v, {String fallback = '—'}) {
+    if (v == null) return fallback;
+    return v.toString();
+  }
+
+  String _safeUpper(dynamic v, {String fallback = '—'}) {
+    if (v == null) return fallback;
+    return v.toString().toUpperCase();
+  }
+
+  // ---------------- BUILD ----------------
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -24,24 +36,14 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            /// 🔹 HEADER
             _buildHeader(),
-
             const SizedBox(height: 12),
-
-            /// 🔹 STATS
             _buildStatsRow(),
-
             const SizedBox(height: 16),
-
-            /// 🔹 FILTERS (FIXED IN MIDDLE)
             _buildTypeFilters(),
             const SizedBox(height: 8),
             _buildStatusFilters(),
-
             const SizedBox(height: 12),
-
-            /// 🔹 ORDERS LIST (ONLY THIS SCROLLS)
             Expanded(child: _buildOrdersList()),
           ],
         ),
@@ -127,7 +129,7 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
     );
   }
 
-  // ---------------- TYPE FILTER ----------------
+  // ---------------- FILTERS ----------------
   Widget _buildTypeFilters() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -144,7 +146,6 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
     );
   }
 
-  // ---------------- STATUS FILTER ----------------
   Widget _buildStatusFilters() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -241,14 +242,14 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
   Widget _orderCard(String orderId, Map<String, dynamic> data) {
     final userId = data['userId'];
 
-    if (!_userCache.containsKey(userId)) {
+    if (userId != null && !_userCache.containsKey(userId)) {
       FirebaseFirestore.instance
           .collection('users')
           .doc(userId)
           .get()
           .then((u) {
-        _userCache[userId] = u['displayName'] ?? 'Unknown';
-        setState(() {});
+        _userCache[userId] = u.data()?['displayName'] ?? 'Unknown';
+        if (mounted) setState(() {});
       });
     }
 
@@ -266,19 +267,21 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              data['orderNumber'] ?? orderId,
+              _safeText(data['orderNumber'], fallback: orderId),
               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 4),
             Text(
-              _userCache[userId] ?? 'Loading...',
+              userId == null
+                  ? 'Unknown user'
+                  : _userCache[userId] ?? 'Loading...',
               style: TextStyle(color: Colors.grey[600]),
             ),
             const SizedBox(height: 8),
             Row(
               children: [
                 StatusChip(
-                  text: data['orderType'].toUpperCase(),
+                  text: _safeUpper(data['orderType'], fallback: 'UNKNOWN'),
                   color: data['orderType'] == 'rental'
                       ? Colors.orange
                       : Colors.green,
@@ -286,7 +289,7 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
                 ),
                 const SizedBox(width: 8),
                 StatusChip(
-                  text: data['paymentStatus'],
+                  text: _safeUpper(data['paymentStatus'], fallback: 'PENDING'),
                   color: data['paymentStatus'] == 'completed'
                       ? Colors.green
                       : Colors.orange,

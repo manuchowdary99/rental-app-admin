@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../../orders/presentation/admin_orders_screen.dart';
 import '../../analytics/presentation/analytics_dashboard_screen.dart';
 import '../../rentals/presentation/rentals_management_screen.dart';
 import '../../delivery/presentation/delivery_management_screen.dart';
@@ -15,27 +16,26 @@ class AdminMainNavigation extends StatefulWidget {
   const AdminMainNavigation({super.key});
 
   @override
-  State<AdminMainNavigation> createState() =>
-      _AdminMainNavigationState();
+  State<AdminMainNavigation> createState() => _AdminMainNavigationState();
 }
 
-class _AdminMainNavigationState
-    extends State<AdminMainNavigation> {
+class _AdminMainNavigationState extends State<AdminMainNavigation> {
   int selectedIndex = 0;
 
   // =============================
-  // SCREENS
+  // SCREENS (DO NOT CONST PENDING)
   // =============================
   final List<Widget> screens = [
-    const AnalyticsDashboardScreen(),     // 0
-    const RentalsManagementScreen(),     // 1
-    const DeliveryManagementScreen(),    // 2
-    const UsersManagementScreen(),       // 3
+    const AnalyticsDashboardScreen(), // 0
+    const RentalsManagementScreen(), // 1
+    const DeliveryManagementScreen(), // 2
+    const UsersManagementScreen(), // 3
     const ComplaintsManagementScreen(), // 4
-    const CategoriesScreen(),            // 5
-    const ProductsScreen(),             // 6
-    PendingProductsScreen(),            // 7 (NON-CONST)
-    const KycVerificationScreen(),      // 8
+    const CategoriesScreen(), // 5
+    const ProductsScreen(), // 6
+    PendingProductsScreen(), // 7 (NON-CONST)
+    const KycVerificationScreen(), // 8
+    const AdminOrdersScreen(), // 9
   ];
 
   @override
@@ -65,20 +65,18 @@ class _AdminMainNavigationState
               children: [
                 _section("ANALYTICS"),
                 _analyticsItem(),
-
                 _section("MANAGEMENT"),
                 _item(Icons.assignment_rounded, "Rentals", 1),
                 _item(Icons.delivery_dining_rounded, "Delivery", 2),
                 _item(Icons.people_rounded, "Users", 3),
                 _item(Icons.support_agent_rounded, "Complaints", 4),
-
                 _section("CATALOG"),
                 _item(Icons.category_rounded, "Categories", 5),
                 _item(Icons.inventory_2_rounded, "Products", 6),
                 _item(Icons.verified_rounded, "Pending Approvals", 7),
-
                 _section("SECURITY"),
                 _item(Icons.verified_user_rounded, "KYC Verification", 8),
+                _item(Icons.receipt_long_rounded, "Orders", 9),
               ],
             ),
           ),
@@ -150,8 +148,7 @@ class _AdminMainNavigationState
           .where('status', isEqualTo: 'pending')
           .snapshots(),
       builder: (context, snapshot) {
-        final count =
-            snapshot.hasData ? snapshot.data!.docs.length : 0;
+        final count = snapshot.hasData ? snapshot.data!.docs.length : 0;
 
         return _item(
           Icons.analytics_rounded,
@@ -217,9 +214,7 @@ class _AdminMainNavigationState
               Icon(
                 icon,
                 size: 20,
-                color: isActive
-                    ? const Color(0xFF781C2E)
-                    : Colors.grey[600],
+                color: isActive ? const Color(0xFF781C2E) : Colors.grey[600],
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -227,11 +222,8 @@ class _AdminMainNavigationState
                   title,
                   style: TextStyle(
                     fontSize: 15,
-                    fontWeight:
-                        isActive ? FontWeight.w600 : FontWeight.w500,
-                    color: isActive
-                        ? const Color(0xFF781C2E)
-                        : Colors.black87,
+                    fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
+                    color: isActive ? const Color(0xFF781C2E) : Colors.black87,
                   ),
                 ),
               ),
@@ -294,6 +286,7 @@ class _AdminMainNavigationState
       "Products",
       "Pending Approvals",
       "KYC Verification",
+      "Orders",
     ];
     return titles[index];
   }
