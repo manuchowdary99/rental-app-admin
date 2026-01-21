@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import '../services/product_service.dart';
 import '../models/product.dart';
@@ -90,7 +91,6 @@ class _ProductsScreenState extends State<ProductsScreen> {
             ],
           ),
           const SizedBox(height: 14),
-
           Row(
             children: [
               // CATEGORY DROPDOWN
@@ -216,26 +216,49 @@ class _ProductsScreenState extends State<ProductsScreen> {
   }
 
   Future<void> _addProduct() async {
-    await _productService.addProduct(
-      name: _nameController.text.trim(),
-      price: double.parse(_priceController.text),
-      categoryId: _selectedCategoryId!,
-      categoryName: _selectedCategoryName!,
-    );
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please login to add products'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
 
-    _nameController.clear();
-    _priceController.clear();
+    try {
+      await _productService.addProduct(
+        name: _nameController.text.trim(),
+        price: double.parse(_priceController.text),
+        categoryId: _selectedCategoryId!,
+        categoryName: _selectedCategoryName!,
+        userId: user.uid,
+        userName: user.displayName ?? user.email ?? 'Unknown User',
+      );
 
-    setState(() {
-      _selectedCategoryId = null;
-      _selectedCategoryName = null;
-    });
+      _nameController.clear();
+      _priceController.clear();
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Product submitted for admin approval'),
-      ),
-    );
+      setState(() {
+        _selectedCategoryId = null;
+        _selectedCategoryName = null;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Product submitted for admin approval'),
+          backgroundColor: Color(0xFF781C2E),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error adding product: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   // =============================

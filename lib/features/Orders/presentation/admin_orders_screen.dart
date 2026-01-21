@@ -12,12 +12,13 @@ class AdminOrdersScreen extends StatefulWidget {
 }
 
 class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
-  String _selectedType = 'all'; // all | rental | sale
-  String _selectedStatus = 'all'; // all | active | completed
+  String _selectedType = 'all';
+  String _selectedStatus = 'all';
+  String _searchQuery = '';
 
   final Map<String, String> _userCache = {};
 
-  // -------- SAFE HELPERS --------
+  // ---------------- SAFE HELPERS ----------------
   String _safeText(dynamic v, {String fallback = '—'}) {
     if (v == null) return fallback;
     return v.toString();
@@ -34,17 +35,46 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF9F6EE),
       body: SafeArea(
-        child: Column(
-          children: [
-            _buildHeader(),
-            const SizedBox(height: 12),
-            _buildStatsRow(),
-            const SizedBox(height: 16),
-            _buildTypeFilters(),
-            const SizedBox(height: 8),
-            _buildStatusFilters(),
-            const SizedBox(height: 12),
-            Expanded(child: _buildOrdersList()),
+        child: CustomScrollView(
+          slivers: [
+            // ================= HEADER (SCROLLS AWAY) =================
+            SliverToBoxAdapter(child: _buildHeader()),
+
+            // ================= STATS (SCROLLS AWAY) =================
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: _buildStatsRow(),
+              ),
+            ),
+
+            // ================= TYPE FILTERS (SCROLLS AWAY) =================
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: _buildTypeFilters(),
+              ),
+            ),
+
+            // ================= STICKY SEARCH + STATUS FILTER =================
+            SliverPersistentHeader(
+              pinned: true,
+              delegate: _StickySearchDelegate(
+                child: Column(
+                  children: [
+                    _buildSearchBar(),
+                    const SizedBox(height: 8),
+                    _buildStatusFilters(),
+                  ],
+                ),
+              ),
+            ),
+
+            // ================= ORDERS LIST =================
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              sliver: _buildOrdersSliver(),
+            ),
           ],
         ),
       ),
@@ -68,6 +98,25 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  // ---------------- SEARCH ----------------
+  Widget _buildSearchBar() {
+    return TextField(
+      onChanged: (value) {
+        setState(() => _searchQuery = value.trim().toLowerCase());
+      },
+      decoration: InputDecoration(
+        hintText: 'Search by order number or user',
+        prefixIcon: const Icon(Icons.search),
+        filled: true,
+        fillColor: Colors.white,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide.none,
+        ),
       ),
     );
   }
@@ -186,8 +235,8 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
     );
   }
 
-  // ---------------- ORDERS LIST ----------------
-  Widget _buildOrdersList() {
+  // ---------------- ORDERS SLIVER ----------------
+  Widget _buildOrdersSliver() {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('orders')
@@ -195,7 +244,9 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
           .snapshots(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
-          return const LoadingState(message: 'Loading orders...');
+          return const SliverToBoxAdapter(
+            child: LoadingState(message: 'Loading orders...'),
+          );
         }
 
         final filtered = snapshot.data!.docs.where((doc) {
@@ -215,24 +266,43 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
             return false;
           }
 
+          if (_searchQuery.isNotEmpty) {
+            final orderNumber =
+                (data['orderNumber'] ?? '').toString().toLowerCase();
+            final userId = data['userId'] ?? '';
+            final userName = (_userCache[userId] ?? '').toLowerCase();
+
+            if (!orderNumber.contains(_searchQuery) &&
+                !userId.toString().toLowerCase().contains(_searchQuery) &&
+                !userName.contains(_searchQuery)) {
+              return false;
+            }
+          }
+
           return true;
         }).toList();
 
         if (filtered.isEmpty) {
-          return const EmptyState(
-            icon: Icons.receipt_long_rounded,
-            title: 'No orders',
-            subtitle: 'No orders match the selected filters',
+          return const SliverToBoxAdapter(
+            child: EmptyState(
+              icon: Icons.receipt_long_rounded,
+              title: 'No orders',
+              subtitle: 'No orders match the selected filters',
+            ),
           );
         }
 
-        return ListView.builder(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          itemCount: filtered.length,
-          itemBuilder: (context, index) {
-            final doc = filtered[index];
-            return _orderCard(doc.id, doc.data() as Map<String, dynamic>);
-          },
+        return SliverList(
+          delegate: SliverChildBuilderDelegate(
+            (context, index) {
+              final doc = filtered[index];
+              return _orderCard(
+                doc.id,
+                doc.data() as Map<String, dynamic>,
+              );
+            },
+            childCount: filtered.length,
+          ),
         );
       },
     );
@@ -301,5 +371,36 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
         ),
       ),
     );
+  }
+}
+
+// ================= STICKY HEADER DELEGATE =================
+class _StickySearchDelegate extends SliverPersistentHeaderDelegate {
+  final Widget child;
+
+  _StickySearchDelegate({required this.child});
+
+  @override
+  double get minExtent => 110;
+
+  @override
+  double get maxExtent => 110;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    return Container(
+      color: const Color(0xFFF9F6EE),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      child: child,
+    );
+  }
+
+  @override
+  bool shouldRebuild(covariant _StickySearchDelegate oldDelegate) {
+    return false;
   }
 }

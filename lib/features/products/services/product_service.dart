@@ -11,12 +11,14 @@ class ProductService {
     required double price,
     required String categoryId,
     required String categoryName,
+    required String userId, // Add user ownership
+    required String userName, // Add user name for easy reference
   }) async {
     bool flagged = false;
     int riskScore = 0;
-    String status = 'approved';
+    String status = 'pending'; // Always start as pending
 
-    // AUTO FLAG RULES
+    // AUTO FLAG RULES for higher risk scoring
     if (price > 100000) {
       flagged = true;
       riskScore += 50;
@@ -28,26 +30,25 @@ class ProductService {
       riskScore += 50;
     }
 
-    if (flagged) {
-      status = 'pending';
-    }
-
     final product = Product(
       id: '',
       name: name,
       price: price,
       categoryId: categoryId,
       categoryName: categoryName,
-      isActive: true,
+      isActive: false, // Not active until approved
       isFlagged: flagged,
       riskScore: riskScore,
       status: status,
       createdAt: DateTime.now(),
     );
 
-    await _firestore
-        .collection(_collection)
-        .add(product.toFirestore());
+    await _firestore.collection(_collection).add({
+      ...product.toFirestore(),
+      'userId': userId, // Add ownership
+      'userName': userName,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
   }
 
   // ---------------- STREAMS ----------------
@@ -75,18 +76,33 @@ class ProductService {
         .map(_mapProducts);
   }
 
+  // Get user's own products for editing
+  Stream<List<Product>> userProductsStream(String userId) {
+    return _firestore
+        .collection(_collection)
+        .where('userId', isEqualTo: userId)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map(_mapProducts);
+  }
+
   // ---------------- ACTIONS ----------------
   Future<void> approveProduct(String productId) async {
     await _firestore.collection(_collection).doc(productId).update({
       'status': 'approved',
+      'isActive': true, // Make active when approved
       'isFlagged': false,
       'riskScore': 0,
+      'approvedAt': FieldValue.serverTimestamp(),
     });
   }
 
-  Future<void> rejectProduct(String productId) async {
+  Future<void> rejectProduct(String productId, {String? reason}) async {
     await _firestore.collection(_collection).doc(productId).update({
       'status': 'rejected',
+      'isActive': false,
+      'rejectedAt': FieldValue.serverTimestamp(),
+      'rejectionReason': reason,
     });
   }
 
@@ -102,8 +118,6 @@ class ProductService {
 
   // ---------------- MAPPER ----------------
   List<Product> _mapProducts(QuerySnapshot snapshot) {
-    return snapshot.docs
-        .map((doc) => Product.fromFirestore(doc))
-        .toList();
+    return snapshot.docs.map((doc) => Product.fromFirestore(doc)).toList();
   }
 }

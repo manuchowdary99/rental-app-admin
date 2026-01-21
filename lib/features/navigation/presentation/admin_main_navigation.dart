@@ -21,7 +21,7 @@ class AdminMainNavigation extends StatefulWidget {
 
 class _AdminMainNavigationState extends State<AdminMainNavigation> {
   int selectedIndex = 0;
-
+  int _previousIndex = 0;
   // =============================
   // SCREENS (DO NOT CONST PENDING)
   // =============================
@@ -42,12 +42,37 @@ class _AdminMainNavigationState extends State<AdminMainNavigation> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(_getTitle(selectedIndex)),
+        elevation: 0,
+        backgroundColor: const Color(0xFFF9F6EE),
+        title: const SizedBox.shrink(),
       ),
       drawer: _buildDrawer(context),
       body: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 200),
-        child: screens[selectedIndex],
+        duration: const Duration(milliseconds: 300),
+        switchInCurve: Curves.easeOut,
+        switchOutCurve: Curves.easeIn,
+        transitionBuilder: (child, animation) {
+          final Offset beginOffset = selectedIndex > _previousIndex
+              ? const Offset(0.05, 0)
+              : const Offset(-0.05, 0);
+
+          final Animation<Offset> slideAnimation = Tween<Offset>(
+            begin: beginOffset,
+            end: Offset.zero,
+          ).animate(animation);
+
+          return FadeTransition(
+            opacity: animation,
+            child: SlideTransition(
+              position: slideAnimation,
+              child: child,
+            ),
+          );
+        },
+        child: KeyedSubtree(
+          key: ValueKey(selectedIndex),
+          child: screens[selectedIndex],
+        ),
       ),
     );
   }
@@ -194,7 +219,10 @@ class _AdminMainNavigationState extends State<AdminMainNavigation> {
       child: InkWell(
         borderRadius: BorderRadius.circular(14),
         onTap: () {
-          setState(() => selectedIndex = index);
+          setState(() {
+            _previousIndex = selectedIndex;
+            selectedIndex = index;
+          });
           Navigator.pop(context);
         },
         child: AnimatedContainer(
