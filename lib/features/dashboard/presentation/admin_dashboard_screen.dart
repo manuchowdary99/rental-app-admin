@@ -13,14 +13,6 @@ class AdminDashboardScreen extends ConsumerWidget {
   // ANALYTICS HELPERS
   // =======================
 
-  Stream<int> _kycCount(String status) {
-    return FirebaseFirestore.instance
-        .collection('kyc')
-        .where('status', isEqualTo: status)
-        .snapshots()
-        .map((snap) => snap.size);
-  }
-
   Stream<List<FlSpot>> _monthlyOrdersGrowth() {
     return FirebaseFirestore.instance
         .collection('orders')
@@ -69,8 +61,6 @@ class AdminDashboardScreen extends ConsumerWidget {
               _buildRecentActivity(),
               const SizedBox(height: 24),
               _buildOrdersDistribution(),
-              const SizedBox(height: 32),
-              _buildKycAnalytics(),
               const SizedBox(height: 32),
               _buildGrowthChart(),
             ],
@@ -309,58 +299,6 @@ class AdminDashboardScreen extends ConsumerWidget {
   // =======================
   // ANALYTICS
   // =======================
-
-  Widget _buildKycAnalytics() {
-    return AdminCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'KYC Status Overview',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF1E293B),
-            ),
-          ),
-          const SizedBox(height: 20),
-          SizedBox(
-            height: 220,
-            child: StreamBuilder<List<int>>(
-              stream: _kycCount("pending").asyncMap((p) async {
-                final a = await _kycCount("approved").first;
-                return [p, a];
-              }),
-              builder: (context, snapshot) {
-                final data = snapshot.data ?? [0, 0];
-
-                return PieChart(
-                  PieChartData(
-                    centerSpaceRadius: 40,
-                    sectionsSpace: 4,
-                    sections: [
-                      PieChartSectionData(
-                        value: data[0].toDouble(),
-                        title: "Pending",
-                        color: Colors.orange,
-                        radius: 60,
-                      ),
-                      PieChartSectionData(
-                        value: data[1].toDouble(),
-                        title: "Approved",
-                        color: Colors.green,
-                        radius: 60,
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildGrowthChart() {
     return AdminCard(

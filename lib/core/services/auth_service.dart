@@ -1,12 +1,77 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+
+enum AdminAuthStatus {
+  unauthenticated,
+  checking,
+  authenticated,
+  unauthorized,
+  error,
+}
+
+class AdminAuthState {
+  final AdminAuthStatus status;
+  final User? user;
+  final String? message;
+
+  const AdminAuthState._(this.status, {this.user, this.message});
+
+  const AdminAuthState.unauthenticated()
+      : this._(AdminAuthStatus.unauthenticated);
+
+  const AdminAuthState.checking(User user)
+      : this._(AdminAuthStatus.checking, user: user);
+
+  const AdminAuthState.authenticated(User user)
+      : this._(AdminAuthStatus.authenticated, user: user);
+
+  const AdminAuthState.unauthorized(String message)
+      : this._(AdminAuthStatus.unauthorized, message: message);
+
+  const AdminAuthState.error(String message)
+      : this._(AdminAuthStatus.error, message: message);
+}
+
+class AdminAccessException implements Exception {
+  final String message;
+
+  AdminAccessException(this.message);
+
+  @override
+  String toString() => message;
+}
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
   Stream<User?> authStateChanges() => _auth.authStateChanges();
+
+  Stream<AdminAuthState> adminAuthStateChanges() async* {
+    await for (final user in _auth.authStateChanges()) {
+      if (user == null) {
+        yield const AdminAuthState.unauthenticated();
+        continue;
+      }
+
+      yield AdminAuthState.checking(user);
+
+      try {
+        await _ensureAdminAccess(user);
+        yield AdminAuthState.authenticated(user);
+      } on AdminAccessException catch (e) {
+        yield AdminAuthState.unauthorized(e.message);
+        await _auth.signOut();
+      } catch (_) {
+        yield const AdminAuthState.error(
+          'Unable to verify admin access. Please try again.',
+        );
+        await _auth.signOut();
+      }
+    }
+  }
 
   // ==========================
   // ADMIN EMAIL LOGIN
@@ -23,8 +88,13 @@ class AuthService {
     final user = cred.user;
     if (user == null) return null;
 
-    await _ensureAdminAccess(user);
-    return user;
+    try {
+      await _ensureAdminAccess(user);
+      return user;
+    } on AdminAccessException {
+      await _auth.signOut();
+      rethrow;
+    }
   }
 
   // ==========================
@@ -36,8 +106,13 @@ class AuthService {
     final user = result.user;
     if (user == null) return null;
 
-    await _ensureAdminAccess(user);
-    return user;
+    try {
+      await _ensureAdminAccess(user);
+      return user;
+    } on AdminAccessException {
+      await _auth.signOut();
+      rethrow;
+    }
   }
 
   // ==========================
@@ -61,31 +136,35 @@ class AuthService {
 
     // If admin user doc does not exist, deny access
     if (!doc.exists) {
-      await _auth.signOut();
-      throw Exception('Admin profile not found');
+      throw AdminAccessException('Admin profile not found');
     }
 
     final data = doc.data() ?? {};
 
-    final role = data['role'] as String? ?? 'normal';
-    final status = data['status'] as String? ?? 'active';
+    final role = (data['role'] as String? ?? 'normal').toLowerCase().trim();
+    final status = (data['status'] as String? ?? 'active').toLowerCase().trim();
+    final isAdminFlag = data['isAdmin'] == true;
 
     // Blocked users can't log in
     if (status == 'blocked') {
-      await _auth.signOut();
-      throw Exception('Your account has been blocked by admin');
+      throw AdminAccessException('Your account has been blocked by admin');
     }
 
     // Only admins can enter admin panel
-    if (role != 'admin') {
-      await _auth.signOut();
-      throw Exception('No admin access');
+    final hasAdminRole = role == 'admin' || role == 'super_admin';
+    if (!isAdminFlag && !hasAdminRole) {
+      throw AdminAccessException('No admin access');
     }
 
     // Update last login time
-    await docRef.update({
-      'lastLoginAt': Timestamp.now(),
-    });
+    try {
+      await docRef.update({
+        'lastLoginAt': Timestamp.now(),
+      });
+    } catch (e, stack) {
+      debugPrint('Failed to update lastLoginAt for admin: $e');
+      debugPrint(stack.toString());
+    }
   }
 
   // ==========================
@@ -142,14 +221,11 @@ class AuthService {
         "uid": user.uid,
         "email": user.email,
         "displayName": user.displayName ?? "User",
-
         "role": "normal",
         "status": "active",
         "kycStatus": "not_submitted",
-
         "createdAt": Timestamp.now(),
         "lastLoginAt": Timestamp.now(),
-
         "itemsListed": 0,
         "rentalsCount": 0,
         "rating": 0,
@@ -178,19 +254,17 @@ class AuthService {
           'uid': cred.user!.uid,
           'email': 'admin@test.com',
           'displayName': 'Test Admin',
-
           'role': 'admin',
           'status': 'active',
           'kycStatus': 'approved',
-
           'createdAt': Timestamp.now(),
           'lastLoginAt': Timestamp.now(),
         });
 
-        print('Test admin user created successfully!');
+        debugPrint('Test admin user created successfully!');
       }
     } catch (e) {
-      print('Admin user might already exist or error: $e');
+      debugPrint('Admin user might already exist or error: $e');
     }
   }
 }

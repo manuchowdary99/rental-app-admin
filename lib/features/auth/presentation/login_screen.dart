@@ -4,7 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/services/auth_service.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
-  const LoginScreen({super.key});
+  const LoginScreen({super.key, this.initialError});
+
+  final String? initialError;
 
   @override
   ConsumerState<LoginScreen> createState() => _LoginScreenState();
@@ -16,6 +18,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _passwordCtrl = TextEditingController();
   bool _loading = false;
   String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _error = widget.initialError;
+  }
+
+  @override
+  void didUpdateWidget(covariant LoginScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialError != oldWidget.initialError) {
+      setState(() {
+        _error = widget.initialError;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -429,30 +447,40 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+
+    if (!mounted) return;
     setState(() {
       _loading = true;
       _error = null;
     });
 
     try {
-      await ref
-          .read(authServiceProvider)
-          .signInAsAdmin(
+      await ref.read(authServiceProvider).signInAsAdmin(
             email: _emailCtrl.text.trim(),
             password: _passwordCtrl.text.trim(),
           );
+      // DO NOTHING ELSE HERE
+      // Navigation happens via authStateChanges
+    } on AdminAccessException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.message;
+      });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = 'Admin login failed';
       });
     } finally {
-      if (mounted) {
-        setState(() => _loading = false);
-      }
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+      });
     }
   }
 
   Future<void> _loginWithGoogle() async {
+    if (!mounted) return;
     setState(() {
       _loading = true;
       _error = null;
@@ -461,29 +489,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     try {
       await ref.read(authServiceProvider).signInWithGoogleAsAdmin();
     } catch (e) {
+      if (!mounted) return;
       setState(() {
-        final errorMessage = e.toString();
-        if (errorMessage.contains('No admin access')) {
-          _error = 'Access denied: Admin privileges required';
-        } else if (errorMessage.contains('cancelled')) {
-          _error = 'Authentication was cancelled';
-        } else if (errorMessage.contains('unauthorized-domain')) {
-          _error = 'Domain not authorized. Contact administrator.';
-        } else if (errorMessage.contains('operation-not-allowed')) {
-          _error = 'Google sign-in not enabled. Contact administrator.';
-        } else {
-          _error =
-              'Google login failed: ${errorMessage.replaceAll('Exception: ', '')}';
-        }
+        _error = 'Google login failed';
       });
     } finally {
-      if (mounted) {
-        setState(() => _loading = false);
-      }
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+      });
     }
   }
 
   Future<void> _createTestAdmin() async {
+    if (!mounted) return;
     setState(() {
       _loading = true;
       _error = null;
@@ -491,18 +510,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     try {
       await ref.read(authServiceProvider).createTestAdmin();
+      if (!mounted) return;
       setState(() {
-        _error =
-            'Test admin user created! Now you can login with the credentials.';
+        _error = 'Test admin user created. You can now login.';
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
-        _error = 'Admin user creation: ${e.toString()}';
+        _error = e.toString();
       });
     } finally {
-      if (mounted) {
-        setState(() => _loading = false);
-      }
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+      });
     }
   }
 }

@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-
 import '../../analytics/presentation/analytics_dashboard_screen.dart';
 import '../../delivery/presentation/delivery_management_screen.dart';
 import '../../users/presentation/users_management_screen.dart';
@@ -9,6 +7,8 @@ import '../../categories/screens/categories_screen.dart';
 import '../../products/screens/products_screen.dart';
 import '../../products/screens/pending_products_screen.dart';
 import '../../orders/presentation/admin_orders_screen.dart';
+import '../../kyc/presentation/admin_kyc_screen.dart';
+import '../../kyc/services/kyc_service.dart';
 
 class AdminMainNavigation extends StatefulWidget {
   const AdminMainNavigation({super.key});
@@ -19,6 +19,7 @@ class AdminMainNavigation extends StatefulWidget {
 
 class _AdminMainNavigationState extends State<AdminMainNavigation> {
   int selectedIndex = 0;
+  final KycService _kycService = KycService();
 
   // =============================
   // SCREENS (ORDER IS CRITICAL)
@@ -27,11 +28,12 @@ class _AdminMainNavigationState extends State<AdminMainNavigation> {
     const AnalyticsDashboardScreen(), // 0
     const DeliveryManagementScreen(), // 1
     const UsersManagementScreen(), // 2
-    const ComplaintsManagementScreen(), // 3
-    const CategoriesScreen(), // 4
-    const ProductsScreen(), // 5
-    PendingProductsScreen(), // 6
-    const AdminOrdersScreen(), // 7
+    const AdminKycScreen(), // 3
+    const ComplaintsManagementScreen(), // 4
+    const CategoriesScreen(), // 5
+    const ProductsScreen(), // 6
+    PendingProductsScreen(), // 7
+    const AdminOrdersScreen(), // 8
   ];
 
   @override
@@ -64,13 +66,14 @@ class _AdminMainNavigationState extends State<AdminMainNavigation> {
                 _section("MANAGEMENT"),
                 _item(Icons.delivery_dining_rounded, "Delivery", 1),
                 _item(Icons.people_rounded, "Users", 2),
-                _item(Icons.support_agent_rounded, "Complaints", 3),
+                _kycItem(),
+                _item(Icons.support_agent_rounded, "Complaints", 4),
                 _section("CATALOG"),
-                _item(Icons.category_rounded, "Categories", 4),
-                _item(Icons.inventory_2_rounded, "Products", 5),
-                _item(Icons.verified_rounded, "Pending Approvals", 6),
+                _item(Icons.category_rounded, "Categories", 5),
+                _item(Icons.inventory_2_rounded, "Products", 6),
+                _item(Icons.verified_rounded, "Pending Approvals", 7),
                 _section("SECURITY"),
-                _item(Icons.receipt_long_rounded, "Orders", 7),
+                _item(Icons.receipt_long_rounded, "Orders", 8),
               ],
             ),
           ),
@@ -136,19 +139,24 @@ class _AdminMainNavigationState extends State<AdminMainNavigation> {
   // ANALYTICS ITEM WITH KYC BADGE
   // =============================
   Widget _analyticsItem() {
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('kyc')
-          .where('status', isEqualTo: 'pending')
-          .snapshots(),
-      builder: (context, snapshot) {
-        final count = snapshot.hasData ? snapshot.data!.docs.length : 0;
+    return _item(
+      Icons.analytics_rounded,
+      "Analytics",
+      0,
+    );
+  }
 
+  Widget _kycItem() {
+    return StreamBuilder<int>(
+      stream: _kycService.pendingCountStream(),
+      builder: (context, snapshot) {
+        final pending = snapshot.data ?? 0;
+        final badge = pending > 0 ? pending.toString() : null;
         return _item(
-          Icons.analytics_rounded,
-          "Analytics",
-          0,
-          badge: count > 0 ? "$count" : null,
+          Icons.verified_user_rounded,
+          "KYC Verification",
+          3,
+          badge: badge,
         );
       },
     );
@@ -271,11 +279,11 @@ class _AdminMainNavigationState extends State<AdminMainNavigation> {
       "Analytics",
       "Delivery",
       "Users",
+      "KYC Verification",
       "Complaints",
       "Categories",
       "Products",
       "Pending Approvals",
-      "KYC Verification",
       "Orders",
     ];
     return titles[index];

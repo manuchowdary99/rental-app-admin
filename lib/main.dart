@@ -1,19 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'features/navigation/presentation/admin_main_navigation.dart';
 
 import 'firebase_options.dart';
 import 'core/services/auth_service.dart';
 import 'features/auth/presentation/login_screen.dart';
-import 'features/navigation/presentation/admin_main_navigation.dart';
 
 // MANAGEMENT SCREENS
 import 'features/users/presentation/users_management_screen.dart';
 import 'features/complaints/presentation/complaints_management_screen.dart';
 
-final authStateChangesProvider = StreamProvider<User?>(
-  (ref) => ref.read(authServiceProvider).authStateChanges(),
+final authStateChangesProvider = StreamProvider<AdminAuthState>(
+  (ref) => ref.read(authServiceProvider).adminAuthStateChanges(),
 );
 
 Future<void> main() async {
@@ -45,15 +44,41 @@ class AdminApp extends ConsumerWidget {
         "/complaints": (context) => const ComplaintsManagementScreen(),
       },
       home: authState.when(
-        data: (user) =>
-            user == null ? const LoginScreen() : const AdminMainNavigation(),
-        loading: () => const Scaffold(
-          body: Center(child: CircularProgressIndicator()),
-        ),
-        error: (e, _) => Scaffold(
-          body: Center(child: Text('Error: $e')),
+        data: (state) {
+          switch (state.status) {
+            case AdminAuthStatus.authenticated:
+              return const AdminMainNavigation();
+            case AdminAuthStatus.checking:
+              return const _AuthLoadingScreen();
+            case AdminAuthStatus.unauthorized:
+              return LoginScreen(
+                initialError: state.message ?? 'You do not have admin access.',
+              );
+            case AdminAuthStatus.error:
+              return LoginScreen(
+                initialError: state.message ?? 'Unable to verify admin access.',
+              );
+            case AdminAuthStatus.unauthenticated:
+            default:
+              return const LoginScreen();
+          }
+        },
+        loading: () => const _AuthLoadingScreen(),
+        error: (e, _) => LoginScreen(
+          initialError: 'Unexpected error: $e',
         ),
       ),
+    );
+  }
+}
+
+class _AuthLoadingScreen extends StatelessWidget {
+  const _AuthLoadingScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      body: Center(child: CircularProgressIndicator()),
     );
   }
 }
