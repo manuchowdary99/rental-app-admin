@@ -8,7 +8,6 @@ import '../../complaints/presentation/complaints_management_screen.dart';
 import '../../categories/screens/categories_screen.dart';
 import '../../products/screens/products_screen.dart';
 import '../../products/screens/pending_products_screen.dart';
-import '../../kyc/presentation/kyc_verification_screen.dart';
 import '../../orders/presentation/admin_orders_screen.dart';
 
 class AdminMainNavigation extends StatefulWidget {
@@ -32,8 +31,7 @@ class _AdminMainNavigationState extends State<AdminMainNavigation> {
     const CategoriesScreen(), // 4
     const ProductsScreen(), // 5
     PendingProductsScreen(), // 6
-    const KycVerificationScreen(), // 7
-    const AdminOrdersScreen(), // 8
+    const AdminOrdersScreen(), // 7
   ];
 
   @override
@@ -72,8 +70,7 @@ class _AdminMainNavigationState extends State<AdminMainNavigation> {
                 _item(Icons.inventory_2_rounded, "Products", 5),
                 _item(Icons.verified_rounded, "Pending Approvals", 6),
                 _section("SECURITY"),
-                _item(Icons.verified_user_rounded, "KYC Verification", 7),
-                _item(Icons.receipt_long_rounded, "Orders", 8),
+                _item(Icons.receipt_long_rounded, "Orders", 7),
               ],
             ),
           ),
