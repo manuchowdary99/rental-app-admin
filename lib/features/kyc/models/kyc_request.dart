@@ -164,6 +164,54 @@ class KycRequest {
   bool get isApproved => status == 'approved';
   bool get isRejected => status == 'rejected';
 
+  KycRequest copyWith({
+    String? id,
+    String? userId,
+    String? status,
+    String? fullName,
+    String? email,
+    String? phone,
+    String? address,
+    Map<String, dynamic>? location,
+    GeoPoint? geoPoint,
+    String? documentType,
+    String? documentNumber,
+    String? documentUrl,
+    String? selfieUrl,
+    int? completionStep,
+    int? resubmissionCount,
+    Timestamp? createdAt,
+    Timestamp? submittedAt,
+    Timestamp? updatedAt,
+    Timestamp? verifiedAt,
+    Timestamp? lastRejectedAt,
+    String? rejectionReason,
+  }) {
+    return KycRequest(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      status: status ?? this.status,
+      fullName: fullName ?? this.fullName,
+      email: email ?? this.email,
+      phone: phone ?? this.phone,
+      address: address ?? this.address,
+      location: location ?? this.location,
+      geoPoint: geoPoint ?? this.geoPoint,
+      documentType: documentType ?? this.documentType,
+      documentNumber: documentNumber ?? this.documentNumber,
+      documentUrl: documentUrl ?? this.documentUrl,
+      selfieUrl: selfieUrl ?? this.selfieUrl,
+      completionStep: completionStep ?? this.completionStep,
+      resubmissionCount: resubmissionCount ?? this.resubmissionCount,
+      createdAt: createdAt ?? this.createdAt,
+      submittedAt: submittedAt ?? this.submittedAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      verifiedAt: verifiedAt ?? this.verifiedAt,
+      lastRejectedAt: lastRejectedAt ?? this.lastRejectedAt,
+      rejectionReason: rejectionReason ?? this.rejectionReason,
+    );
+  }
+
   static String? _readString(Map<String, dynamic> data, String key) {
     final value = data[key];
     return value?.toString();

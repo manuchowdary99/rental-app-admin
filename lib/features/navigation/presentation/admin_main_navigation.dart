@@ -9,6 +9,7 @@ import '../../products/screens/pending_products_screen.dart';
 import '../../orders/presentation/admin_orders_screen.dart';
 import '../../kyc/presentation/admin_kyc_screen.dart';
 import '../../kyc/services/kyc_service.dart';
+import '../../subscriptions/presentation/admin_subscriptions_screen.dart';
 
 class AdminMainNavigation extends StatefulWidget {
   const AdminMainNavigation({super.key});
@@ -34,6 +35,7 @@ class _AdminMainNavigationState extends State<AdminMainNavigation> {
     const ProductsScreen(), // 6
     PendingProductsScreen(), // 7
     const AdminOrdersScreen(), // 8
+    const AdminSubscriptionsScreen(), // 9
   ];
 
   @override
@@ -74,6 +76,8 @@ class _AdminMainNavigationState extends State<AdminMainNavigation> {
                 _item(Icons.verified_rounded, "Pending Approvals", 7),
                 _section("SECURITY"),
                 _item(Icons.receipt_long_rounded, "Orders", 8),
+                _section("REVENUE"),
+                _item(Icons.monetization_on_outlined, "Subscriptions", 9),
               ],
             ),
           ),
@@ -285,6 +289,7 @@ class _AdminMainNavigationState extends State<AdminMainNavigation> {
       "Products",
       "Pending Approvals",
       "Orders",
+      "Subscriptions",
     ];
     return titles[index];
   }

@@ -41,7 +41,8 @@ service cloud.firestore {
       match /bookings/{bookingId} {
         allow create: if isLoggedIn()
           && request.resource.data.buyerId == request.auth.uid;
-        allow read: if isAdmin() || request.auth.uid == resource.data.buyerId;
+        // FIX #1: Allow all logged-in users to READ bookings to check availability (Double Booking Prevention)
+        allow read: if isLoggedIn(); 
         allow update, delete: if false;
       }
 
@@ -82,7 +83,8 @@ service cloud.firestore {
 
       match /transactions/{transactionId} {
         allow read: if isAdmin();
-        allow create: if isAdmin();
+        // FIX #2: Allow users to create payment transactions (otherwise payments fail)
+        allow create: if isLoggedIn();
         allow update, delete: if false;
       }
     }
@@ -109,7 +111,8 @@ service cloud.firestore {
       allow list: if isAdmin();
       allow read: if isAdmin() || (request.auth != null && request.auth.uid == userId);
       allow create: if request.auth != null && request.auth.uid == userId;
-      allow update: if isAdmin();
+      // FIX #3: Allow users to UPDATE their own KYC (e.g. re-submission after rejection)
+      allow update: if isAdmin() || (request.auth != null && request.auth.uid == userId);
       allow delete: if false;
     }
 
@@ -131,16 +134,25 @@ service cloud.firestore {
     /* Subscriptions */
     match /subscriptions/{subscriptionId} {
       allow read: if isAdmin()
-        || (isLoggedIn() && resource.data.userId == request.auth.uid);
-      allow write: if isAdmin();
+        || (isLoggedIn() && subscriptionId == request.auth.uid);
+      // Allow authenticated users to update their own subscription (for payment success)
+      allow write: if isAdmin()
+        || (isLoggedIn() && subscriptionId == request.auth.uid);
 
       match /transactions/{transactionId} {
         allow read: if isAdmin()
-          || (isLoggedIn()
-            && get(/databases/$(database)/documents/subscriptions/$(subscriptionId))
-              .data.userId == request.auth.uid);
-        allow write: if isAdmin();
+          || (isLoggedIn() && subscriptionId == request.auth.uid);
+        // Allow users to write their own subscription transactions
+        allow write: if isAdmin()
+          || (isLoggedIn() && subscriptionId == request.auth.uid);
       }
+    }
+
+    /* Notifications enqueue (admin generated reminders) */
+    match /notifications/{notificationId} {
+      allow read: if isAdmin()
+        || (isLoggedIn() && resource.data.userId == request.auth.uid);
+      allow create, update, delete: if isAdmin();
     }
   }
 }
