@@ -45,11 +45,9 @@ android/app/release/
 ####################################
 # WINDOWS / LINUX / MACOS BUILD FILES
 ####################################
-linux/flutter/generated_plugin_registrant.cc
-linux/flutter/generated_plugins.cmake
-macos/Flutter/GeneratedPluginRegistrant.swift
-windows/flutter/generated_plugin_registrant.cc
-windows/flutter/generated_plugins.cmake
+linux/flutter/
+macos/Flutter/
+windows/flutter/
 
 ####################################
 # NODE / BACKEND
@@ -71,6 +69,7 @@ serviceAccountKey.json
 firebaseAdminKey.json
 google-services.json
 /secrets/
+firestore-migration/serviceAccountKey.json
 
 ####################################
 # TEST / TEMP FILES
@@ -98,3 +97,13 @@ testFirebase.js
 .svn/
 .swiftpm/
 migrate_working_dir/
+
+# Flutter/Dart docs
+**/doc/api/
+
+# Symbolication
+app.*.symbols
+app.*.map.json
+
+# Node / Migration scripts
+firestore-migration/node_modules/

@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-import '../../orders/presentation/admin_orders_screen.dart';
 import '../../analytics/presentation/analytics_dashboard_screen.dart';
-import '../../rentals/presentation/rentals_management_screen.dart';
 import '../../delivery/presentation/delivery_management_screen.dart';
 import '../../users/presentation/users_management_screen.dart';
 import '../../complaints/presentation/complaints_management_screen.dart';
@@ -11,6 +9,8 @@ import '../../categories/screens/categories_screen.dart';
 import '../../products/screens/products_screen.dart';
 import '../../products/screens/pending_products_screen.dart';
 import '../../kyc/presentation/kyc_verification_screen.dart';
+import '../../orders/presentation/admin_orders_screen.dart';
+import '../../subscriptions/presentation/admin_subscriptions_screen.dart';
 
 class AdminMainNavigation extends StatefulWidget {
   const AdminMainNavigation({super.key});
@@ -21,58 +21,35 @@ class AdminMainNavigation extends StatefulWidget {
 
 class _AdminMainNavigationState extends State<AdminMainNavigation> {
   int selectedIndex = 0;
-  int _previousIndex = 0;
+
   // =============================
-  // SCREENS (DO NOT CONST PENDING)
+  // SCREENS
   // =============================
   final List<Widget> screens = [
     const AnalyticsDashboardScreen(), // 0
-    const RentalsManagementScreen(), // 1
-    const DeliveryManagementScreen(), // 2
-    const UsersManagementScreen(), // 3
-    const ComplaintsManagementScreen(), // 4
-    const CategoriesScreen(), // 5
-    const ProductsScreen(), // 6
-    PendingProductsScreen(), // 7 (NON-CONST)
-    const KycVerificationScreen(), // 8
-    const AdminOrdersScreen(), // 9
+    const DeliveryManagementScreen(), // 1
+    const UsersManagementScreen(), // 2
+    const ComplaintsManagementScreen(), // 3
+    const CategoriesScreen(), // 4
+    const ProductsScreen(), // 5
+    PendingProductsScreen(), // 6
+    const KycVerificationScreen(), // 7
+    const AdminOrdersScreen(), // 8
+    const AdminSubscriptionsScreen(), // 9
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        elevation: 0,
-        backgroundColor: const Color(0xFFF9F6EE),
-        title: const SizedBox.shrink(),
+        title: Text(_getTitle(selectedIndex)),
+        backgroundColor: const Color(0xFF781C2E),
+        foregroundColor: Colors.white,
       ),
       drawer: _buildDrawer(context),
       body: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 300),
-        switchInCurve: Curves.easeOut,
-        switchOutCurve: Curves.easeIn,
-        transitionBuilder: (child, animation) {
-          final Offset beginOffset = selectedIndex > _previousIndex
-              ? const Offset(0.05, 0)
-              : const Offset(-0.05, 0);
-
-          final Animation<Offset> slideAnimation = Tween<Offset>(
-            begin: beginOffset,
-            end: Offset.zero,
-          ).animate(animation);
-
-          return FadeTransition(
-            opacity: animation,
-            child: SlideTransition(
-              position: slideAnimation,
-              child: child,
-            ),
-          );
-        },
-        child: KeyedSubtree(
-          key: ValueKey(selectedIndex),
-          child: screens[selectedIndex],
-        ),
+        duration: const Duration(milliseconds: 200),
+        child: screens[selectedIndex],
       ),
     );
   }
@@ -90,18 +67,21 @@ class _AdminMainNavigationState extends State<AdminMainNavigation> {
               children: [
                 _section("ANALYTICS"),
                 _analyticsItem(),
+
                 _section("MANAGEMENT"),
-                _item(Icons.assignment_rounded, "Rentals", 1),
-                _item(Icons.delivery_dining_rounded, "Delivery", 2),
-                _item(Icons.people_rounded, "Users", 3),
-                _item(Icons.support_agent_rounded, "Complaints", 4),
+                _item(Icons.delivery_dining_rounded, "Delivery", 1),
+                _item(Icons.people_rounded, "Users", 2),
+                _item(Icons.support_agent_rounded, "Complaints", 3),
+                _item(Icons.subscriptions_rounded, "Subscriptions", 9),
+
                 _section("CATALOG"),
-                _item(Icons.category_rounded, "Categories", 5),
-                _item(Icons.inventory_2_rounded, "Products", 6),
-                _item(Icons.verified_rounded, "Pending Approvals", 7),
+                _item(Icons.category_rounded, "Categories", 4),
+                _item(Icons.inventory_2_rounded, "Products", 5),
+                _item(Icons.verified_rounded, "Pending Approvals", 6),
+
                 _section("SECURITY"),
-                _item(Icons.verified_user_rounded, "KYC Verification", 8),
-                _item(Icons.receipt_long_rounded, "Orders", 9),
+                _item(Icons.verified_user_rounded, "KYC Verification", 7),
+                _item(Icons.receipt_long_rounded, "Orders", 8),
               ],
             ),
           ),
@@ -164,7 +144,7 @@ class _AdminMainNavigationState extends State<AdminMainNavigation> {
   }
 
   // =============================
-  // ANALYTICS ITEM WITH KYC BADGE
+  // ANALYTICS ITEM
   // =============================
   Widget _analyticsItem() {
     return StreamBuilder<QuerySnapshot>(
@@ -186,7 +166,7 @@ class _AdminMainNavigationState extends State<AdminMainNavigation> {
   }
 
   // =============================
-  // SECTION TITLE
+  // UI HELPERS
   // =============================
   Widget _section(String title) {
     return Padding(
@@ -203,9 +183,6 @@ class _AdminMainNavigationState extends State<AdminMainNavigation> {
     );
   }
 
-  // =============================
-  // DRAWER ITEM
-  // =============================
   Widget _item(
     IconData icon,
     String title,
@@ -219,18 +196,12 @@ class _AdminMainNavigationState extends State<AdminMainNavigation> {
       child: InkWell(
         borderRadius: BorderRadius.circular(14),
         onTap: () {
-          setState(() {
-            _previousIndex = selectedIndex;
-            selectedIndex = index;
-          });
+          setState(() => selectedIndex = index);
           Navigator.pop(context);
         },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(
-            horizontal: 14,
-            vertical: 12,
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
             color: isActive
                 ? const Color(0xFF781C2E).withOpacity(0.15)
@@ -242,7 +213,9 @@ class _AdminMainNavigationState extends State<AdminMainNavigation> {
               Icon(
                 icon,
                 size: 20,
-                color: isActive ? const Color(0xFF781C2E) : Colors.grey[600],
+                color: isActive
+                    ? const Color(0xFF781C2E)
+                    : Colors.grey[600],
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -250,17 +223,18 @@ class _AdminMainNavigationState extends State<AdminMainNavigation> {
                   title,
                   style: TextStyle(
                     fontSize: 15,
-                    fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
-                    color: isActive ? const Color(0xFF781C2E) : Colors.black87,
+                    fontWeight:
+                        isActive ? FontWeight.w600 : FontWeight.w500,
+                    color: isActive
+                        ? const Color(0xFF781C2E)
+                        : Colors.black87,
                   ),
                 ),
               ),
               if (badge != null)
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: Colors.red,
                     borderRadius: BorderRadius.circular(12),
@@ -306,7 +280,6 @@ class _AdminMainNavigationState extends State<AdminMainNavigation> {
   String _getTitle(int index) {
     const titles = [
       "Analytics",
-      "Rentals",
       "Delivery",
       "Users",
       "Complaints",
@@ -315,6 +288,7 @@ class _AdminMainNavigationState extends State<AdminMainNavigation> {
       "Pending Approvals",
       "KYC Verification",
       "Orders",
+      "Subscriptions",
     ];
     return titles[index];
   }

@@ -5,7 +5,6 @@ import '../../../core/services/auth_service.dart';
 import '../../users/presentation/users_list_screen.dart';
 import '../../users/presentation/admins_management_screen.dart';
 import '../../items/presentation/items_list_screen.dart';
-import '../../rentals/presentation/rentals_list_screen.dart';
 import '../../complaints/presentation/complaints_list_screen.dart';
 
 class AdminHomeScreen extends ConsumerWidget {
@@ -59,7 +58,7 @@ class AdminHomeScreen extends ConsumerWidget {
                             ),
                           ),
                           Text(
-                            'Rental Management System',
+                            'Orders & platform management',
                             style: TextStyle(
                               color: Colors.white70,
                               fontSize: 14,
@@ -94,9 +93,8 @@ class AdminHomeScreen extends ConsumerWidget {
                   ),
                   child: GridView.count(
                     padding: const EdgeInsets.all(20),
-                    crossAxisCount: MediaQuery.of(context).size.width > 800
-                        ? 3
-                        : 2,
+                    crossAxisCount:
+                        MediaQuery.of(context).size.width > 800 ? 3 : 2,
                     crossAxisSpacing: 20,
                     mainAxisSpacing: 20,
                     childAspectRatio: 1,
@@ -130,26 +128,13 @@ class AdminHomeScreen extends ConsumerWidget {
                       _card(
                         context,
                         'Items',
-                        'Rental inventory',
+                        'Product inventory',
                         Icons.inventory_2_rounded,
                         const Color(0xFF10B981),
                         () => Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (_) => const ItemsListScreen(),
-                          ),
-                        ),
-                      ),
-                      _card(
-                        context,
-                        'Rentals',
-                        'Manage rentals',
-                        Icons.assignment_rounded,
-                        const Color(0xFFF59E0B),
-                        () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const RentalsListScreen(),
                           ),
                         ),
                       ),
@@ -241,7 +226,10 @@ class AdminHomeScreen extends ConsumerWidget {
             const SizedBox(height: 4),
             Text(
               subtitle,
-              style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+              style: TextStyle(
+                fontSize: 13,
+                color: Colors.grey[600],
+              ),
             ),
           ],
         ),
