@@ -48,24 +48,44 @@ class _AdminKycScreenState extends State<AdminKycScreen> {
           final allRequests = snapshot.data ?? [];
           final visibleRequests = _applyFilters(allRequests);
 
-          return Column(
-            children: [
-              _buildControls(allRequests),
-              Expanded(
-                child: visibleRequests.isEmpty
-                    ? _CenterMessage(
-                        icon: Icons.verified_user_outlined,
-                        message: _filter == KycStatusFilter.pending
-                            ? 'No pending KYC submissions'
-                            : 'No requests match the selected filters',
-                      )
-                    : ListView.separated(
-                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-                        itemCount: visibleRequests.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 16),
-                        itemBuilder: (context, index) {
-                          final request = visibleRequests[index];
-                          return _KycRequestCard(
+          return CustomScrollView(
+            slivers: [
+              SliverToBoxAdapter(
+                child: _buildStatsRow(allRequests),
+              ),
+              SliverPersistentHeader(
+                pinned: true,
+                delegate: _SearchHeaderDelegate(
+                  backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+                  child: _buildSearchField(),
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: _buildFilterChips(),
+              ),
+              if (visibleRequests.isEmpty)
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: _CenterMessage(
+                    icon: Icons.verified_user_outlined,
+                    message: _filter == KycStatusFilter.pending
+                        ? 'No pending KYC submissions'
+                        : 'No requests match the selected filters',
+                  ),
+                )
+              else
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+                  sliver: SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) {
+                        final request = visibleRequests[index];
+                        return Padding(
+                          padding: EdgeInsets.only(
+                            bottom:
+                                index == visibleRequests.length - 1 ? 0 : 16,
+                          ),
+                          child: _KycRequestCard(
                             request: request,
                             dateFormat: _dateFormat,
                             onApprove: request.isApproved
@@ -76,10 +96,13 @@ class _AdminKycScreenState extends State<AdminKycScreen> {
                                 : () => _handleReject(request),
                             onPreview: (url, title) =>
                                 _showAttachmentPreview(url, title),
-                          );
-                        },
-                      ),
-              ),
+                          ),
+                        );
+                      },
+                      childCount: visibleRequests.length,
+                    ),
+                  ),
+                ),
             ],
           );
         },
@@ -87,62 +110,71 @@ class _AdminKycScreenState extends State<AdminKycScreen> {
     );
   }
 
-  Widget _buildControls(List<KycRequest> requests) {
+  Widget _buildStatsRow(List<KycRequest> requests) {
     final pending = requests.where((request) => request.isPending).length;
     final approved = requests.where((request) => request.isApproved).length;
     final rejected = requests.where((request) => request.isRejected).length;
 
-    return Column(
-      children: [
-        const SizedBox(height: 12),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Row(
-            children: [
-              _StatCard(label: 'Pending', value: pending, color: Colors.orange),
-              const SizedBox(width: 12),
-              _StatCard(
-                  label: 'Approved', value: approved, color: Colors.green),
-              const SizedBox(width: 12),
-              _StatCard(label: 'Rejected', value: rejected, color: Colors.red),
-            ],
+    final cards = [
+      _StatCard(label: 'Pending', value: pending, color: Colors.orange),
+      const SizedBox(width: 12),
+      _StatCard(label: 'Approved', value: approved, color: Colors.green),
+      const SizedBox(width: 12),
+      _StatCard(label: 'Rejected', value: rejected, color: Colors.red),
+    ];
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: cards,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSearchField() {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+      child: TextField(
+        controller: _searchController,
+        onChanged: (value) {
+          setState(() => _searchTerm = value.trim().toLowerCase());
+        },
+        decoration: InputDecoration(
+          filled: true,
+          fillColor: theme.cardColor,
+          prefixIcon: const Icon(Icons.search),
+          hintText: 'Search name, email, phone or document number',
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
           ),
         ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-          child: TextField(
-            controller: _searchController,
-            onChanged: (value) {
-              setState(() => _searchTerm = value.trim().toLowerCase());
-            },
-            decoration: InputDecoration(
-              prefixIcon: const Icon(Icons.search),
-              hintText: 'Search name, email, phone or document number',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
+      ),
+    );
+  }
+
+  Widget _buildFilterChips() {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+      child: Row(
+        children: KycStatusFilter.values
+            .map(
+              (filter) => Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: FilterChip(
+                  label: Text(_labelFor(filter)),
+                  selected: _filter == filter,
+                  onSelected: (_) => setState(() => _filter = filter),
+                ),
               ),
-            ),
-          ),
-        ),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-          child: Row(
-            children: KycStatusFilter.values
-                .map(
-                  (filter) => Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: FilterChip(
-                      label: Text(_labelFor(filter)),
-                      selected: _filter == filter,
-                      onSelected: (_) => setState(() => _filter = filter),
-                    ),
-                  ),
-                )
-                .toList(),
-          ),
-        ),
-      ],
+            )
+            .toList(),
+      ),
     );
   }
 
@@ -302,6 +334,56 @@ class _AdminKycScreenState extends State<AdminKycScreen> {
       case KycStatusFilter.all:
         return 'All';
     }
+  }
+}
+
+class _SearchHeaderDelegate extends SliverPersistentHeaderDelegate {
+  _SearchHeaderDelegate({
+    required this.child,
+    required this.backgroundColor,
+    this.height = 96,
+  });
+
+  final Widget child;
+  final Color backgroundColor;
+  final double height;
+
+  @override
+  double get minExtent => height;
+
+  @override
+  double get maxExtent => height;
+
+  @override
+  Widget build(
+      BuildContext context, double shrinkOffset, bool overlapsContent) {
+    final shadow = overlapsContent
+        ? [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
+            ),
+          ]
+        : const <BoxShadow>[];
+
+    return Container(
+      color: backgroundColor,
+      child: DecoratedBox(
+        decoration: BoxDecoration(boxShadow: shadow),
+        child: SizedBox(
+          height: height,
+          child: child,
+        ),
+      ),
+    );
+  }
+
+  @override
+  bool shouldRebuild(_SearchHeaderDelegate oldDelegate) {
+    return oldDelegate.child != child ||
+        oldDelegate.backgroundColor != backgroundColor ||
+        oldDelegate.height != height;
   }
 }
 
@@ -544,7 +626,8 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
+    return SizedBox(
+      width: 180,
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
         decoration: BoxDecoration(
@@ -552,6 +635,7 @@ class _StatCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
         ),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
             Text(
               value.toString(),

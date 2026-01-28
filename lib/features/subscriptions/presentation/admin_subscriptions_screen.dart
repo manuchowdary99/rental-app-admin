@@ -361,7 +361,7 @@ class _AdminSubscriptionsScreenState extends State<AdminSubscriptionsScreen> {
                               priceLabel: priceLabel,
                             )
                         : null,
-                    onNotify: isExpiringSoon && daysLeft != null && isPaidPlan
+                    onNotify: isExpiringSoon && isPaidPlan
                         ? () => _handleNotify(subscription, daysLeft)
                         : null,
                     onCancel:
@@ -399,7 +399,7 @@ class _AdminSubscriptionsScreenState extends State<AdminSubscriptionsScreen> {
           labelText: 'Plan',
           border: OutlineInputBorder(),
         ),
-        value: _planFilter,
+        initialValue: _planFilter,
         items: [
           const DropdownMenuItem<String>(
             value: 'all',
@@ -422,7 +422,7 @@ class _AdminSubscriptionsScreenState extends State<AdminSubscriptionsScreen> {
           labelText: 'Status',
           border: OutlineInputBorder(),
         ),
-        value: _statusFilter,
+        initialValue: _statusFilter,
         items: const [
           DropdownMenuItem(value: 'active', child: Text('Active')),
           DropdownMenuItem(value: 'canceled', child: Text('Canceled')),
@@ -532,7 +532,7 @@ class _AdminSubscriptionsScreenState extends State<AdminSubscriptionsScreen> {
                         labelText: 'Audience',
                         border: OutlineInputBorder(),
                       ),
-                      value: audience,
+                      initialValue: audience,
                       items: const [
                         DropdownMenuItem(
                             value: 'all', child: Text('All users')),
@@ -708,7 +708,7 @@ class _AdminSubscriptionsScreenState extends State<AdminSubscriptionsScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 DropdownButtonFormField<SubscriptionPlan>(
-                  value: selectedPlan,
+                  initialValue: selectedPlan,
                   decoration: const InputDecoration(
                     labelText: 'Plan',
                   ),
@@ -725,7 +725,7 @@ class _AdminSubscriptionsScreenState extends State<AdminSubscriptionsScreen> {
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
-                  value: billingCycle,
+                  initialValue: billingCycle,
                   decoration: const InputDecoration(
                     labelText: 'Billing cycle',
                   ),
@@ -1242,7 +1242,7 @@ class _SubscriberCard extends StatelessWidget {
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                     Text('ID: ${subscription.userId}', style: secondary),
-                    if (showEmail) Text(email!, style: secondary),
+                    if (showEmail) Text(email, style: secondary),
                   ],
                 ),
               ),
