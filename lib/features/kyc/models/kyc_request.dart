@@ -256,7 +256,7 @@ class KycRequest {
       ['lastName', 'last_name', 'surname'],
     );
     final combined = [first, last]
-        .where((part) => part != null && part!.trim().isNotEmpty)
+        .where((part) => part != null && part.trim().isNotEmpty)
         .map((part) => part!.trim())
         .join(' ');
     return combined.isNotEmpty ? combined : null;
@@ -298,7 +298,7 @@ class KycRequest {
       location['country'],
     ]
         .map((value) => value?.toString().trim())
-        .where((value) => value != null && value!.isNotEmpty)
+        .where((value) => value != null && value.isNotEmpty)
         .map((value) => value!)
         .toList();
 

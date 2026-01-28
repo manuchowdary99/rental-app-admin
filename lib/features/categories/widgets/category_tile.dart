@@ -21,19 +21,19 @@ class CategoryTile extends StatelessWidget {
       child: ListTile(
         contentPadding: const EdgeInsets.all(16),
         leading: CircleAvatar(
-          backgroundColor: category.isActive 
-            ? const Color(0xFF781C2E)
-            : Colors.grey,
+          backgroundColor:
+              category.isActive ? const Color(0xFF781C2E) : Colors.grey,
           child: Text(
             category.name.isNotEmpty ? category.name[0].toUpperCase() : '?',
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            style: const TextStyle(
+                color: Colors.white, fontWeight: FontWeight.bold),
           ),
         ),
         title: Text(
           category.name,
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            color: category.isActive ? null : Colors.grey[600],
-          ),
+                color: category.isActive ? null : Colors.grey[600],
+              ),
         ),
         subtitle: Text(
           'Created: ${category.createdAt.toDate().toString().split(' ')[0]}',
@@ -45,7 +45,7 @@ class CategoryTile extends StatelessWidget {
             Switch(
               value: category.isActive,
               onChanged: (_) => onToggle(),
-              activeColor: const Color(0xFF781C2E),
+              activeThumbColor: const Color(0xFF781C2E),
             ),
             IconButton(
               icon: const Icon(Icons.delete, color: Colors.red),

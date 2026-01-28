@@ -101,7 +101,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
                     final categories = snapshot.data ?? [];
 
                     return DropdownButtonFormField<String>(
-                      value: _selectedCategoryId,
+                      initialValue: _selectedCategoryId,
                       hint: const Text('Select Category'),
                       decoration: InputDecoration(
                         prefixIcon: const Icon(Icons.category),

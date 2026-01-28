@@ -12,8 +12,7 @@ class AnalyticsDashboardScreen extends StatefulWidget {
       _AnalyticsDashboardScreenState();
 }
 
-class _AnalyticsDashboardScreenState
-    extends State<AnalyticsDashboardScreen> {
+class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
   TimeRange selectedRange = TimeRange.all;
 
   // =============================
@@ -46,8 +45,7 @@ class _AnalyticsDashboardScreenState
     if (_startDate != null) {
       query = query.where(
         'createdAt',
-        isGreaterThanOrEqualTo:
-            Timestamp.fromDate(_startDate!),
+        isGreaterThanOrEqualTo: Timestamp.fromDate(_startDate!),
       );
     }
 
@@ -154,14 +152,10 @@ class _AnalyticsDashboardScreenState
 
     return OutlinedButton(
       style: OutlinedButton.styleFrom(
-        backgroundColor:
-            isSelected ? const Color(0xFF781C2E) : Colors.white,
-        foregroundColor:
-            isSelected ? Colors.white : Colors.black87,
+        backgroundColor: isSelected ? const Color(0xFF781C2E) : Colors.white,
+        foregroundColor: isSelected ? Colors.white : Colors.black87,
         side: BorderSide(
-          color: isSelected
-              ? const Color(0xFF781C2E)
-              : Colors.grey.shade300,
+          color: isSelected ? const Color(0xFF781C2E) : Colors.grey.shade300,
         ),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(8),
@@ -206,9 +200,7 @@ class _AnalyticsDashboardScreenState
           ),
         ),
         const SizedBox(width: 16),
-        Expanded(
-            child:
-                _kpi("Complaints", "complaints", Icons.support_agent)),
+        Expanded(child: _kpi("Complaints", "complaints", Icons.support_agent)),
       ],
     );
   }
@@ -230,8 +222,7 @@ class _AnalyticsDashboardScreenState
         equals: equals,
       ),
       builder: (context, snapshot) {
-        final value =
-            snapshot.hasData ? snapshot.data.toString() : "...";
+        final value = snapshot.hasData ? snapshot.data.toString() : "...";
 
         return InkWell(
           borderRadius: BorderRadius.circular(16),
@@ -254,8 +245,7 @@ class _AnalyticsDashboardScreenState
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF781C2E)
-                        .withOpacity(0.1),
+                    color: const Color(0xFF781C2E).withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
@@ -341,35 +331,39 @@ class _KycPieChart extends StatelessWidget {
     return StreamBuilder<Map<String, int>>(
       stream: _kycStats(),
       builder: (context, snapshot) {
-        final data = snapshot.data ??
-            {"approved": 1, "pending": 1, "rejected": 1};
+        final data =
+            snapshot.data ?? {"approved": 1, "pending": 1, "rejected": 1};
 
-        return _card(
-          "KYC Status Distribution",
-          PieChart(
-            PieChartData(
-              centerSpaceRadius: 50,
-              sectionsSpace: 4,
-              sections: [
-                PieChartSectionData(
-                  value: data["approved"]!.toDouble(),
-                  title: "Approved",
-                  color: Colors.green,
-                  radius: 60,
-                ),
-                PieChartSectionData(
-                  value: data["pending"]!.toDouble(),
-                  title: "Pending",
-                  color: Colors.orange,
-                  radius: 60,
-                ),
-                PieChartSectionData(
-                  value: data["rejected"]!.toDouble(),
-                  title: "Rejected",
-                  color: Colors.red,
-                  radius: 60,
-                ),
-              ],
+        return InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: () => Navigator.pushNamed(context, '/kyc'),
+          child: _card(
+            "KYC Status Distribution",
+            PieChart(
+              PieChartData(
+                centerSpaceRadius: 50,
+                sectionsSpace: 4,
+                sections: [
+                  PieChartSectionData(
+                    value: data["approved"]!.toDouble(),
+                    title: "Approved",
+                    color: Colors.green,
+                    radius: 60,
+                  ),
+                  PieChartSectionData(
+                    value: data["pending"]!.toDouble(),
+                    title: "Pending",
+                    color: Colors.orange,
+                    radius: 60,
+                  ),
+                  PieChartSectionData(
+                    value: data["rejected"]!.toDouble(),
+                    title: "Rejected",
+                    color: Colors.red,
+                    radius: 60,
+                  ),
+                ],
+              ),
             ),
           ),
         );
@@ -408,8 +402,7 @@ class _RentalsLineChart extends StatelessWidget {
               barWidth: 4,
               belowBarData: BarAreaData(
                 show: true,
-                color: const Color(0xFF781C2E)
-                    .withOpacity(0.15),
+                color: const Color(0xFF781C2E).withOpacity(0.15),
               ),
               dotData: FlDotData(show: false),
             ),

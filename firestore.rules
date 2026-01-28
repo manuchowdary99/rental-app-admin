@@ -7,13 +7,61 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function userData(uid) {
+      return exists(/databases/$(database)/documents/users/$(uid))
+        ? get(/databases/$(database)/documents/users/$(uid)).data
+        : null;
+    }
+
     function isAdmin() {
       return isLoggedIn()
-        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && userData(request.auth.uid) != null
         && (
-          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'super_admin'] ||
-          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true
+          userData(request.auth.uid).role in ['admin', 'super_admin'] ||
+          userData(request.auth.uid).isAdmin == true
         );
+    }
+
+    function isDeliveryPartner() {
+      return isLoggedIn()
+        && userData(request.auth.uid) != null
+        && userData(request.auth.uid).role in ['delivery_partner', 'delivery'];
+    }
+
+    function orderData(orderId) {
+      return exists(/databases/$(database)/documents/orders/$(orderId))
+        ? get(/databases/$(database)/documents/orders/$(orderId)).data
+        : null;
+    }
+
+    function isOrderActor(orderId) {
+      return isLoggedIn()
+        && orderData(orderId) != null
+        && (
+          orderData(orderId).buyerId == request.auth.uid ||
+          orderData(orderId).ownerId == request.auth.uid ||
+          orderData(orderId).userId == request.auth.uid
+        );
+    }
+
+    function partnerOnDelivery(data) {
+      return isDeliveryPartner()
+        && data != null
+        && (
+          (data.delivery1 != null && data.delivery1.partnerId == request.auth.uid) ||
+          (data.delivery2 != null && data.delivery2.partnerId == request.auth.uid) ||
+          (data.partnerId == request.auth.uid) ||
+          (data.partnerIds != null && request.auth.uid in data.partnerIds)
+        );
+    }
+
+    function penaltyFieldUntouched() {
+      return !request.resource.data.keys().hasAny(['penalty'])
+        || request.resource.data.penalty == resource.data.penalty;
+    }
+
+    function reviewAuditUntouched() {
+      return !request.resource.data.keys().hasAny(['reviewCompletedAt']);
     }
 
     /* Users */
@@ -99,11 +147,22 @@ service cloud.firestore {
 
     /* Delivery */
     match /delivery/{deliveryId} {
-      allow read, write: if isAdmin();
+      allow read: if isAdmin() || isOrderActor(deliveryId);
+      allow create, update: if isAdmin() || isDeliveryPartner();
+      allow delete: if isAdmin();
     }
 
     match /deliveries/{deliveryId} {
-      allow read, write: if isAdmin();
+      allow read: if isAdmin() || (resource != null && partnerOnDelivery(resource.data));
+      allow create: if isDeliveryPartner() && partnerOnDelivery(request.resource.data);
+      allow update: if isAdmin()
+        || (
+          partnerOnDelivery(resource.data)
+          && partnerOnDelivery(request.resource.data)
+          && penaltyFieldUntouched()
+          && reviewAuditUntouched()
+        );
+      allow delete: if isAdmin();
     }
 
     /* KYC */
@@ -141,18 +200,11 @@ service cloud.firestore {
 
       match /transactions/{transactionId} {
         allow read: if isAdmin()
-          || (isLoggedIn() && subscriptionId == request.auth.uid);
+          || (isLoggedIn() && subscriptionId == request.auth.uid); 
         // Allow users to write their own subscription transactions
         allow write: if isAdmin()
           || (isLoggedIn() && subscriptionId == request.auth.uid);
       }
-    }
-
-    /* Notifications enqueue (admin generated reminders) */
-    match /notifications/{notificationId} {
-      allow read: if isAdmin()
-        || (isLoggedIn() && resource.data.userId == request.auth.uid);
-      allow create, update, delete: if isAdmin();
     }
   }
 }

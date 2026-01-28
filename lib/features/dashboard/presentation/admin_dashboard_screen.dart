@@ -21,7 +21,7 @@ class AdminDashboardScreen extends ConsumerWidget {
       final Map<int, int> monthlyCount = {};
 
       for (var doc in snapshot.docs) {
-        final data = doc.data() as Map<String, dynamic>;
+        final data = doc.data();
         final ts = data['createdAt'];
 
         if (ts is Timestamp) {

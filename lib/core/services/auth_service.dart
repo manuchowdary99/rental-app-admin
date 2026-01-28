@@ -158,9 +158,12 @@ class AuthService {
 
     // Update last login time
     try {
-      await docRef.update({
-        'lastLoginAt': Timestamp.now(),
-      });
+      await docRef.set(
+        {
+          'lastLoginAt': Timestamp.now(),
+        },
+        SetOptions(merge: true),
+      );
     } catch (e, stack) {
       debugPrint('Failed to update lastLoginAt for admin: $e');
       debugPrint(stack.toString());
