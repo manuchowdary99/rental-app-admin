@@ -9,6 +9,7 @@ import '../../users/presentation/users_detail_screen.dart';
 import '../models/subscription_plan.dart';
 import '../models/user_subscription.dart';
 import '../services/subscription_service.dart';
+import '../../navigation/widgets/admin_app_drawer.dart';
 
 class AdminSubscriptionsScreen extends StatefulWidget {
   const AdminSubscriptionsScreen({super.key});
@@ -80,6 +81,7 @@ class _AdminSubscriptionsScreenState extends State<AdminSubscriptionsScreen> {
               final subscriptions = subsSnapshot.data ?? [];
 
               return SafeArea(
+                top: false,
                 child: SingleChildScrollView(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
@@ -103,6 +105,13 @@ class _AdminSubscriptionsScreenState extends State<AdminSubscriptionsScreen> {
 
     return Scaffold(
       backgroundColor: scheme.surface,
+      appBar: AppBar(
+        title: const Text('Subscriptions'),
+        backgroundColor: scheme.surface,
+        foregroundColor: scheme.onSurface,
+        elevation: 0,
+      ),
+      drawer: const AdminAppDrawer(),
       body: gradientShell,
     );
   }

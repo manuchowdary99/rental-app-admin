@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 
 import '../models/kyc_request.dart';
 import '../services/kyc_service.dart';
+import '../../navigation/widgets/admin_app_drawer.dart';
 
 class AdminKycScreen extends StatefulWidget {
   const AdminKycScreen({super.key});
@@ -31,6 +32,7 @@ class _AdminKycScreenState extends State<AdminKycScreen> {
       appBar: AppBar(
         title: const Text('KYC Management'),
       ),
+      drawer: const AdminAppDrawer(),
       body: StreamBuilder<List<KycRequest>>(
         stream: _kycService.watchAllRequests(),
         builder: (context, snapshot) {

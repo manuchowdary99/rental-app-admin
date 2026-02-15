@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../../navigation/widgets/admin_app_drawer.dart';
+
 class AdminSupportTicketsScreen extends StatelessWidget {
   const AdminSupportTicketsScreen({super.key});
 
@@ -11,6 +13,12 @@ class AdminSupportTicketsScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: scheme.surface,
+      appBar: AppBar(
+        title: const Text('Support Tickets'),
+        backgroundColor: scheme.surface,
+        foregroundColor: scheme.onSurface,
+      ),
+      drawer: const AdminAppDrawer(),
       body: DecoratedBox(
         decoration: BoxDecoration(
           gradient: LinearGradient(

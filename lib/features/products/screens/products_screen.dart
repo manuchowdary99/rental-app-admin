@@ -7,6 +7,7 @@ import '../models/product.dart';
 
 import '../../categories/services/category_service.dart';
 import '../../categories/models/category.dart';
+import '../../navigation/widgets/admin_app_drawer.dart';
 
 class ProductsScreen extends StatefulWidget {
   const ProductsScreen({super.key});
@@ -41,6 +42,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
         foregroundColor: scheme.onPrimary,
         elevation: 0,
       ),
+      drawer: const AdminAppDrawer(),
       body: DecoratedBox(
         decoration: BoxDecoration(
           gradient: LinearGradient(

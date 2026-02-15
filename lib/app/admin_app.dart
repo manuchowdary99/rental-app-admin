@@ -6,7 +6,7 @@ import '../core/theme/app_theme.dart';
 import '../core/theme/theme_provider.dart';
 
 import '../features/auth/presentation/login_screen.dart';
-import '../features/navigation/presentation/admin_main_navigation.dart';
+import '../features/analytics/presentation/analytics_dashboard_screen.dart';
 import '../features/users/presentation/users_management_screen.dart';
 import '../features/kyc/presentation/admin_kyc_screen.dart';
 import '../features/orders/presentation/admin_orders_screen.dart';
@@ -53,7 +53,7 @@ class AdminApp extends ConsumerWidget {
         data: (state) {
           switch (state.status) {
             case AdminAuthStatus.authenticated:
-              return const AdminMainNavigation();
+              return const AnalyticsDashboardScreen();
 
             case AdminAuthStatus.unauthenticated:
             default:

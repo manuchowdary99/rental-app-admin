@@ -6,6 +6,7 @@ import '../../../core/widgets/admin_widgets.dart';
 import '../providers/admin_profile_providers.dart';
 import 'admin_profile_edit_screen.dart';
 import 'admin_change_password_screen.dart';
+import '../../navigation/widgets/admin_app_drawer.dart';
 
 class AdminProfileScreen extends ConsumerWidget {
   const AdminProfileScreen({super.key});
@@ -18,6 +19,13 @@ class AdminProfileScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: scheme.surface,
+      appBar: AppBar(
+        title: const Text('Admin Profile'),
+        backgroundColor: scheme.surface,
+        foregroundColor: scheme.onSurface,
+        elevation: 0,
+      ),
+      drawer: const AdminAppDrawer(),
       body: DecoratedBox(
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -30,6 +38,7 @@ class AdminProfileScreen extends ConsumerWidget {
           ),
         ),
         child: SafeArea(
+          top: false,
           child: profileAsync.when(
             data: (profile) => RefreshIndicator(
               onRefresh: () => ref.refresh(adminProfileProvider.future),
@@ -214,11 +223,6 @@ class _QuickMeta extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cards = [
-      _MetaTile(
-        icon: Icons.alarm_rounded,
-        label: 'Timezone',
-        value: profile.timezone ?? 'Set timezone',
-      ),
       _MetaTile(
         icon: Icons.phone_rounded,
         label: 'Phone',

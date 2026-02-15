@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-
 import '../services/category_service.dart';
 import '../models/category.dart';
 import '../widgets/category_tile.dart';
+import '../../navigation/widgets/admin_app_drawer.dart';
 
 class CategoriesScreen extends StatefulWidget {
   const CategoriesScreen({super.key});
@@ -39,6 +38,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
         foregroundColor: scheme.onPrimary,
         elevation: 0,
       ),
+      drawer: const AdminAppDrawer(),
       body: DecoratedBox(
         decoration: BoxDecoration(
           gradient: LinearGradient(

@@ -97,6 +97,10 @@ class AuthService {
     }
   }
 
+  Future<void> sendAdminPasswordReset(String email) async {
+    await _auth.sendPasswordResetEmail(email: email);
+  }
+
   // ==========================
   // GOOGLE REDIRECT HANDLER
   // ==========================

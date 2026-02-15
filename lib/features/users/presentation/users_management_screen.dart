@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../../core/widgets/admin_widgets.dart';
+import '../../navigation/widgets/admin_app_drawer.dart';
 
 class UsersManagementScreen extends StatefulWidget {
   const UsersManagementScreen({super.key});
@@ -15,6 +18,21 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
   String _filterStatus = 'All';
 
   final _usersRef = FirebaseFirestore.instance.collection('users');
+  final _kycRef = FirebaseFirestore.instance.collection('kyc');
+  Map<String, String> _kycStatuses = {};
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _kycSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _kycSubscription = _kycRef.snapshots().listen(_handleKycSnapshot);
+  }
+
+  @override
+  void dispose() {
+    _kycSubscription?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -23,6 +41,13 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
 
     return Scaffold(
       backgroundColor: scheme.surface,
+      appBar: AppBar(
+        title: const Text('Users'),
+        backgroundColor: scheme.surface,
+        foregroundColor: scheme.onSurface,
+        elevation: 0,
+      ),
+      drawer: const AdminAppDrawer(),
       body: DecoratedBox(
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -35,6 +60,7 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
           ),
         ),
         child: SafeArea(
+          top: false,
           child: CustomScrollView(
             slivers: [
               SliverToBoxAdapter(child: _buildHeader(context)),
@@ -109,7 +135,7 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
 
           final role = (data['role'] ?? 'normal').toString();
           final status = (data['status'] ?? 'active').toString();
-          final kycStatus = (data['kycStatus'] ?? 'not_submitted').toString();
+          final kycStatus = _getEffectiveKycStatus(doc, data);
 
           if (_searchQuery.isNotEmpty &&
               !name.contains(_searchQuery.toLowerCase()) &&
@@ -155,7 +181,8 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
               (context, index) {
                 final doc = filteredDocs[index];
                 final data = doc.data() as Map<String, dynamic>;
-                return _buildUserCard(context, doc, data);
+                final kycStatus = _getEffectiveKycStatus(doc, data);
+                return _buildUserCard(context, doc, data, kycStatus);
               },
               childCount: filteredDocs.length,
             ),
@@ -165,6 +192,56 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
     );
   }
 
+  void _handleKycSnapshot(
+    QuerySnapshot<Map<String, dynamic>> snapshot,
+  ) {
+    final updatedStatuses = <String, String>{};
+
+    for (final doc in snapshot.docs) {
+      final data = doc.data();
+      final rawUserId = (data['userId'] ?? doc.id).toString().trim();
+      if (rawUserId.isEmpty) continue;
+
+      final normalizedStatus =
+          (data['status'] ?? 'pending').toString().toLowerCase();
+      updatedStatuses[rawUserId] = normalizedStatus;
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _kycStatuses = updatedStatuses;
+    });
+  }
+
+  String _getEffectiveKycStatus(
+    QueryDocumentSnapshot doc,
+    Map<String, dynamic> data,
+  ) {
+    final candidateKeys = <String>{doc.id};
+    final altIds = [
+      data['uid'],
+      data['userId'],
+      data['userID'],
+      data['id'],
+    ];
+
+    for (final id in altIds) {
+      if (id == null) continue;
+      candidateKeys.add(id.toString());
+    }
+
+    for (final key in candidateKeys) {
+      final normalizedKey = key.trim();
+      if (normalizedKey.isEmpty) continue;
+      final match = _kycStatuses[normalizedKey];
+      if (match != null && match.isNotEmpty) {
+        return match.toLowerCase();
+      }
+    }
+
+    return (data['kycStatus'] ?? 'not_submitted').toString().toLowerCase();
+  }
+
   // ==========================
   // USER CARD
   // ==========================
@@ -172,13 +249,13 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
     BuildContext context,
     QueryDocumentSnapshot doc,
     Map<String, dynamic> data,
+    String kycStatus,
   ) {
     final displayName = data['displayName'] ?? 'No Name';
     final email = data['email'] ?? 'No Email';
 
     final role = (data['role'] ?? 'normal').toString();
     final status = (data['status'] ?? 'active').toString();
-    final kycStatus = (data['kycStatus'] ?? 'not_submitted').toString();
 
     final isBlocked = status == 'blocked';
     final photoUrl = data['photoURL'] as String?;
@@ -189,7 +266,7 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
     return AdminCard(
       color: scheme.surfaceContainerHighest,
       onTap: () {
-        _showUserDetails(doc, data);
+        _showUserDetails(doc, data, kycStatus);
       },
       child: Row(
         children: [
@@ -308,6 +385,7 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
   void _showUserDetails(
     QueryDocumentSnapshot doc,
     Map<String, dynamic> data,
+    String kycStatus,
   ) {
     final scheme = Theme.of(context).colorScheme;
 
@@ -339,7 +417,7 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
             child: SingleChildScrollView(
               controller: scrollController,
               padding: const EdgeInsets.all(20),
-              child: _buildUserDetailsContent(context, doc, data),
+              child: _buildUserDetailsContent(context, doc, data, kycStatus),
             ),
           );
         },
@@ -354,10 +432,12 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
     BuildContext context,
     QueryDocumentSnapshot doc,
     Map<String, dynamic> data,
+    String kycStatus,
   ) {
     final role = (data['role'] ?? 'normal').toString();
     final status = (data['status'] ?? 'active').toString();
-    final kycStatus = (data['kycStatus'] ?? 'not_submitted').toString();
+    final hasAdminAccess =
+        role == 'admin' || role == 'super_admin' || (data['isAdmin'] == true);
 
     final createdAt = (data['createdAt'] as Timestamp?)?.toDate();
     final lastLogin = (data['lastLoginAt'] as Timestamp?)?.toDate();
@@ -422,6 +502,19 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
           onPressed: () => _updateUser(doc.id, {
             'role': role == 'trusted' ? 'normal' : 'trusted',
             'kycStatus': role == 'trusted' ? 'not_submitted' : 'approved',
+          }),
+        ),
+        const SizedBox(height: 10),
+        AdminButton(
+          text: hasAdminAccess ? 'Remove Admin Access' : 'Grant Admin Access',
+          color: hasAdminAccess ? scheme.error : scheme.primary,
+          icon: hasAdminAccess
+              ? Icons.remove_moderator_rounded
+              : Icons.admin_panel_settings_rounded,
+          isOutlined: !hasAdminAccess,
+          onPressed: () => _updateUser(doc.id, {
+            'role': hasAdminAccess ? 'normal' : 'admin',
+            'isAdmin': !hasAdminAccess,
           }),
         ),
       ],

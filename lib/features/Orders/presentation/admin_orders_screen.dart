@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../../core/widgets/admin_widgets.dart';
 import 'admin_order_details_screen.dart';
+import '../../navigation/widgets/admin_app_drawer.dart';
 
 class AdminOrdersScreen extends StatefulWidget {
   const AdminOrdersScreen({super.key});
@@ -37,6 +38,13 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
 
     return Scaffold(
       backgroundColor: scheme.surface,
+      appBar: AppBar(
+        title: const Text('Orders'),
+        backgroundColor: scheme.surface,
+        foregroundColor: scheme.onSurface,
+        elevation: 0,
+      ),
+      drawer: const AdminAppDrawer(),
       body: DecoratedBox(
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -49,6 +57,7 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
           ),
         ),
         child: SafeArea(
+          top: false,
           child: CustomScrollView(
             slivers: [
               // ================= HEADER (SCROLLS AWAY) =================
@@ -140,6 +149,10 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
 
   // ---------------- STATS ----------------
   Widget _buildStatsRow() {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final Color statValueColor =
+        isDarkMode ? Colors.white : const Color(0xFF1F2933);
+
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance.collection('orders').snapshots(),
       builder: (context, snapshot) {
@@ -168,7 +181,7 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
                   value: total.toString(),
                   icon: Icons.list_alt_rounded,
                   color: const Color(0xFF781C2E),
-                  valueColor: Colors.white,
+                  valueColor: statValueColor,
                 ),
               ),
               const SizedBox(width: 12),
@@ -178,7 +191,7 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
                   value: active.toString(),
                   icon: Icons.timelapse_rounded,
                   color: Colors.orange,
-                  valueColor: Colors.white,
+                  valueColor: statValueColor,
                 ),
               ),
               const SizedBox(width: 12),
@@ -188,7 +201,7 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
                   value: completed.toString(),
                   icon: Icons.check_circle_rounded,
                   color: Colors.green,
-                  valueColor: Colors.white,
+                  valueColor: statValueColor,
                 ),
               ),
             ],

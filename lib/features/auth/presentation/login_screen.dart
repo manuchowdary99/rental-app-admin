@@ -165,36 +165,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               const SizedBox(height: 20),
                             ],
 
-                            // Quick Fill Button
-                            SizedBox(
-                              width: double.infinity,
-                              height: 40,
-                              child: TextButton(
-                                onPressed: () {
-                                  _emailCtrl.text = 'admin@test.com';
-                                  _passwordCtrl.text = 'admin123';
-                                },
-                                child: const Text(
-                                  'Fill Test Credentials',
-                                  style: TextStyle(fontSize: 14),
-                                ),
-                              ),
-                            ),
-                            SizedBox(
-                              width: double.infinity,
-                              height: 40,
-                              child: TextButton.icon(
-                                onPressed: _createTestAdmin,
-                                icon: const Icon(
-                                  Icons.add_circle_outline,
-                                  size: 16,
-                                ),
-                                label: const Text(
-                                  'Create Test Admin User (First Time Only)',
-                                  style: TextStyle(fontSize: 12),
-                                ),
-                              ),
-                            ),
                             const SizedBox(height: 20),
 
                             // Email Field
@@ -297,6 +267,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             ),
                             const SizedBox(height: 32),
 
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: TextButton(
+                                onPressed: _loading ? null : _forgotPassword,
+                                child: const Text('Forgot password?'),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+
                             // Login Button
                             SizedBox(
                               width: double.infinity,
@@ -327,110 +306,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                       ),
                               ),
                             ),
-                            const SizedBox(height: 20),
-
-                            // Google Login Button
-                            SizedBox(
-                              width: double.infinity,
-                              height: 56,
-                              child: OutlinedButton.icon(
-                                onPressed: _loading ? null : _loginWithGoogle,
-                                icon: Container(
-                                  width: 20,
-                                  height: 20,
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(4),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.grey.withValues(
-                                          alpha: 0.3,
-                                        ),
-                                        blurRadius: 2,
-                                        offset: const Offset(0, 1),
-                                      ),
-                                    ],
-                                  ),
-                                  child: const Center(
-                                    child: Text(
-                                      'G',
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.bold,
-                                        color: Color(0xFF781C2E),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                label: const Text(
-                                  'Continue with Google',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: const Color(0xFF1E293B),
-                                  backgroundColor: Colors.white,
-                                  side: BorderSide(color: Colors.grey.shade300),
-                                  elevation: 2,
-                                  shadowColor: Colors.black.withValues(
-                                    alpha: 0.1,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 24,
-                                    vertical: 12,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 20),
-
-                            // Test Admin Credentials Info
-                            Container(
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF9F6EE),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: const Color(
-                                    0xFF781C2E,
-                                  ).withValues(alpha: 0.3),
-                                ),
-                              ),
-                              child: Column(
-                                children: [
-                                  Row(
-                                    children: [
-                                      const Icon(
-                                        Icons.info_outline,
-                                        color: Color(0xFF781C2E),
-                                        size: 20,
-                                      ),
-                                      const SizedBox(width: 8),
-                                      const Text(
-                                        'Test Admin Login',
-                                        style: TextStyle(
-                                          color: Color(0xFF781C2E),
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 8),
-                                  const Text(
-                                    'Email: admin@test.com\nPassword: admin123',
-                                    style: TextStyle(
-                                      color: Color(0xFF781C2E),
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
+                            const SizedBox(height: 12),
                           ],
                         ),
                       ),
@@ -472,14 +348,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         _error = 'Admin login failed';
       });
     } finally {
-      if (!mounted) return;
-      setState(() {
-        _loading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _loading = false;
+        });
+      }
     }
   }
 
-  Future<void> _loginWithGoogle() async {
+  Future<void> _forgotPassword() async {
+    final email = _emailCtrl.text.trim();
+    if (email.isEmpty) {
+      setState(() {
+        _error = 'Enter your email to reset your password.';
+      });
+      return;
+    }
+
     if (!mounted) return;
     setState(() {
       _loading = true;
@@ -487,43 +372,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     });
 
     try {
-      await ref.read(authServiceProvider).signInWithGoogleAsAdmin();
+      await ref.read(authServiceProvider).sendAdminPasswordReset(email);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Password reset link sent to your email.'),
+        ),
+      );
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = 'Google login failed';
+        _error = 'Unable to send reset email. Please try again.';
       });
     } finally {
-      if (!mounted) return;
-      setState(() {
-        _loading = false;
-      });
-    }
-  }
-
-  Future<void> _createTestAdmin() async {
-    if (!mounted) return;
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-
-    try {
-      await ref.read(authServiceProvider).createTestAdmin();
-      if (!mounted) return;
-      setState(() {
-        _error = 'Test admin user created. You can now login.';
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _error = e.toString();
-      });
-    } finally {
-      if (!mounted) return;
-      setState(() {
-        _loading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _loading = false;
+        });
+      }
     }
   }
 }

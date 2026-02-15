@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../core/widgets/admin_widgets.dart';
 import '../services/product_service.dart';
 import '../models/product.dart';
+import '../../navigation/widgets/admin_app_drawer.dart';
 
 class PendingProductsScreen extends StatelessWidget {
   final ProductService _productService = ProductService();
@@ -23,6 +24,7 @@ class PendingProductsScreen extends StatelessWidget {
         foregroundColor: scheme.onPrimary,
         elevation: 0,
       ),
+      drawer: const AdminAppDrawer(),
       body: DecoratedBox(
         decoration: BoxDecoration(
           gradient: LinearGradient(

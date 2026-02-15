@@ -1,12 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../../navigation/widgets/admin_app_drawer.dart';
+
 class AdminSupportFaqScreen extends StatelessWidget {
   const AdminSupportFaqScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('Support FAQs'),
+      ),
+      drawer: const AdminAppDrawer(),
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: const Color(0xFF781C2E),
         onPressed: () => _showAddDialog(context),
@@ -58,8 +64,7 @@ class AdminSupportFaqScreen extends StatelessWidget {
                           // LEFT SIDE CONTENT
                           Expanded(
                             child: Column(
-                              crossAxisAlignment:
-                                  CrossAxisAlignment.start,
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
                                   data['question'],
@@ -69,33 +74,25 @@ class AdminSupportFaqScreen extends StatelessWidget {
                                   ),
                                 ),
                                 const SizedBox(height: 6),
-
                                 if (data['category'] != null)
                                   Container(
-                                    padding:
-                                        const EdgeInsets.symmetric(
-                                            horizontal: 10,
-                                            vertical: 4),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 10, vertical: 4),
                                     decoration: BoxDecoration(
                                       color: const Color(0xFF781C2E)
                                           .withOpacity(0.1),
-                                      borderRadius:
-                                          BorderRadius.circular(20),
+                                      borderRadius: BorderRadius.circular(20),
                                     ),
                                     child: Text(
                                       data['category'],
                                       style: const TextStyle(
                                         fontSize: 12,
-                                        color:
-                                            Color(0xFF781C2E),
-                                        fontWeight:
-                                            FontWeight.w500,
+                                        color: Color(0xFF781C2E),
+                                        fontWeight: FontWeight.w500,
                                       ),
                                     ),
                                   ),
-
                                 const SizedBox(height: 10),
-
                                 Text(
                                   "Display Order: ${data['displayOrder']}",
                                   style: TextStyle(
@@ -114,23 +111,17 @@ class AdminSupportFaqScreen extends StatelessWidget {
                                 icon: const Icon(
                                   Icons.edit_rounded,
                                 ),
-                                color:
-                                    const Color(0xFF781C2E),
-                                onPressed: () =>
-                                    _showEditDialog(
-                                        context, data),
+                                color: const Color(0xFF781C2E),
+                                onPressed: () => _showEditDialog(context, data),
                               ),
                               IconButton(
                                 icon: const Icon(
-                                  Icons
-                                      .delete_outline_rounded,
+                                  Icons.delete_outline_rounded,
                                 ),
                                 color: Colors.red,
                                 onPressed: () {
-                                  FirebaseFirestore
-                                      .instance
-                                      .collection(
-                                          'support_faqs')
+                                  FirebaseFirestore.instance
+                                      .collection('support_faqs')
                                       .doc(data.id)
                                       .delete();
                                 },
@@ -158,8 +149,7 @@ class AdminSupportFaqScreen extends StatelessWidget {
     final questionController = TextEditingController();
     final answerController = TextEditingController();
     final orderController = TextEditingController();
-    final categoryController =
-        TextEditingController(text: "General");
+    final categoryController = TextEditingController(text: "General");
 
     showDialog(
       context: context,
@@ -179,19 +169,16 @@ class AdminSupportFaqScreen extends StatelessWidget {
               ),
               TextField(
                 controller: answerController,
-                decoration:
-                    const InputDecoration(labelText: "Answer"),
+                decoration: const InputDecoration(labelText: "Answer"),
               ),
               TextField(
                 controller: categoryController,
-                decoration:
-                    const InputDecoration(labelText: "Category"),
+                decoration: const InputDecoration(labelText: "Category"),
               ),
               TextField(
                 controller: orderController,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                    labelText: "Display Order"),
+                decoration: const InputDecoration(labelText: "Display Order"),
               ),
             ],
           ),
@@ -199,16 +186,12 @@ class AdminSupportFaqScreen extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () {
-              FirebaseFirestore.instance
-                  .collection('support_faqs')
-                  .add({
+              FirebaseFirestore.instance.collection('support_faqs').add({
                 "question": questionController.text,
                 "answer": answerController.text,
                 "category": categoryController.text,
-                "displayOrder":
-                    int.parse(orderController.text),
-                "updatedAt":
-                    FieldValue.serverTimestamp(),
+                "displayOrder": int.parse(orderController.text),
+                "updatedAt": FieldValue.serverTimestamp(),
               });
               Navigator.pop(context);
             },
@@ -223,16 +206,12 @@ class AdminSupportFaqScreen extends StatelessWidget {
      EDIT FAQ DIALOG
   ============================= */
 
-  void _showEditDialog(
-      BuildContext context, QueryDocumentSnapshot doc) {
-    final questionController =
-        TextEditingController(text: doc['question']);
-    final answerController =
-        TextEditingController(text: doc['answer']);
-    final orderController = TextEditingController(
-        text: doc['displayOrder'].toString());
-    final categoryController =
-        TextEditingController(text: doc['category']);
+  void _showEditDialog(BuildContext context, QueryDocumentSnapshot doc) {
+    final questionController = TextEditingController(text: doc['question']);
+    final answerController = TextEditingController(text: doc['answer']);
+    final orderController =
+        TextEditingController(text: doc['displayOrder'].toString());
+    final categoryController = TextEditingController(text: doc['category']);
 
     showDialog(
       context: context,
@@ -264,10 +243,8 @@ class AdminSupportFaqScreen extends StatelessWidget {
                 "question": questionController.text,
                 "answer": answerController.text,
                 "category": categoryController.text,
-                "displayOrder":
-                    int.parse(orderController.text),
-                "updatedAt":
-                    FieldValue.serverTimestamp(),
+                "displayOrder": int.parse(orderController.text),
+                "updatedAt": FieldValue.serverTimestamp(),
               });
               Navigator.pop(context);
             },

@@ -66,14 +66,12 @@ class AdminProfileUpdateInput {
     this.phoneNumber,
     this.title,
     this.bio,
-    this.timezone,
   });
 
   final String displayName;
   final String? phoneNumber;
   final String? title;
   final String? bio;
-  final String? timezone;
 
   Map<String, dynamic> toMap() {
     return {
@@ -81,7 +79,6 @@ class AdminProfileUpdateInput {
       'phoneNumber': phoneNumber,
       'title': title,
       'bio': bio,
-      'timezone': timezone,
     };
   }
 }

@@ -19,7 +19,6 @@ class _AdminProfileEditScreenState
   late final TextEditingController _nameController;
   late final TextEditingController _titleController;
   late final TextEditingController _phoneController;
-  late final TextEditingController _timezoneController;
   late final TextEditingController _bioController;
 
   bool _seeded = false;
@@ -30,7 +29,6 @@ class _AdminProfileEditScreenState
     _nameController = TextEditingController();
     _titleController = TextEditingController();
     _phoneController = TextEditingController();
-    _timezoneController = TextEditingController();
     _bioController = TextEditingController();
   }
 
@@ -39,7 +37,6 @@ class _AdminProfileEditScreenState
     _nameController.dispose();
     _titleController.dispose();
     _phoneController.dispose();
-    _timezoneController.dispose();
     _bioController.dispose();
     super.dispose();
   }
@@ -49,7 +46,6 @@ class _AdminProfileEditScreenState
     _nameController.text = profile.displayName;
     _titleController.text = profile.title ?? '';
     _phoneController.text = profile.phoneNumber ?? '';
-    _timezoneController.text = profile.timezone ?? '';
     _bioController.text = profile.bio ?? '';
     _seeded = true;
   }
@@ -128,13 +124,6 @@ class _AdminProfileEditScreenState
                       }
                       return null;
                     },
-                  ),
-                  const SizedBox(height: 16),
-                  _buildField(
-                    label: 'Timezone',
-                    controller: _timezoneController,
-                    textInputAction: TextInputAction.next,
-                    hintText: 'ex: GMT+5:30 / IST',
                   ),
                   const SizedBox(height: 32),
                   const Text(
@@ -236,7 +225,6 @@ class _AdminProfileEditScreenState
       displayName: _nameController.text.trim(),
       title: _nullIfEmpty(_titleController.text),
       phoneNumber: _nullIfEmpty(_phoneController.text),
-      timezone: _nullIfEmpty(_timezoneController.text),
       bio: _nullIfEmpty(_bioController.text),
     );
 

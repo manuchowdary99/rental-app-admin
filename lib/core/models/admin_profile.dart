@@ -10,7 +10,6 @@ class AdminProfile {
   final String? photoUrl;
   final String? title;
   final String? bio;
-  final String? timezone;
   final DateTime? createdAt;
   final DateTime? lastLoginAt;
 
@@ -24,7 +23,6 @@ class AdminProfile {
     this.photoUrl,
     this.title,
     this.bio,
-    this.timezone,
     this.createdAt,
     this.lastLoginAt,
   });
@@ -41,7 +39,6 @@ class AdminProfile {
       photoUrl: (data['photoURL'] as String?)?.trim(),
       title: (data['title'] as String?)?.trim(),
       bio: (data['bio'] as String?)?.trim(),
-      timezone: (data['timezone'] as String?)?.trim(),
       createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
       lastLoginAt: (data['lastLoginAt'] as Timestamp?)?.toDate(),
     );
@@ -52,7 +49,6 @@ class AdminProfile {
     String? phoneNumber,
     String? title,
     String? bio,
-    String? timezone,
     String? photoUrl,
   }) {
     return AdminProfile(
@@ -65,7 +61,6 @@ class AdminProfile {
       photoUrl: photoUrl ?? this.photoUrl,
       title: title ?? this.title,
       bio: bio ?? this.bio,
-      timezone: timezone ?? this.timezone,
       createdAt: createdAt,
       lastLoginAt: lastLoginAt,
     );
@@ -77,7 +72,6 @@ class AdminProfile {
       'phoneNumber': phoneNumber,
       'title': title,
       'bio': bio,
-      'timezone': timezone,
       'photoURL': photoUrl,
       'updatedAt': FieldValue.serverTimestamp(),
     }..removeWhere((_, value) => value == null);
