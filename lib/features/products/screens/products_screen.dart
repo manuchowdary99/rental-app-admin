@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+import '../../../core/widgets/admin_widgets.dart';
 import '../services/product_service.dart';
 import '../models/product.dart';
 
@@ -29,18 +30,34 @@ class _ProductsScreenState extends State<ProductsScreen> {
   // =============================
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF9F6EE),
+      backgroundColor: scheme.surface,
       appBar: AppBar(
         title: const Text('Products (Approved)'),
-        backgroundColor: const Color(0xFF781C2E),
-        foregroundColor: Colors.white,
+        backgroundColor: scheme.primary,
+        foregroundColor: scheme.onPrimary,
+        elevation: 0,
       ),
-      body: Column(
-        children: [
-          _buildAddProductForm(),
-          Expanded(child: _buildProductsList()),
-        ],
+      body: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              scheme.surface,
+              scheme.surfaceContainerHighest,
+            ],
+          ),
+        ),
+        child: Column(
+          children: [
+            _buildAddProductForm(context),
+            Expanded(child: _buildProductsList(context)),
+          ],
+        ),
       ),
     );
   }
@@ -48,101 +65,127 @@ class _ProductsScreenState extends State<ProductsScreen> {
   // =============================
   // ADD PRODUCT FORM
   // =============================
-  Widget _buildAddProductForm() {
-    return Container(
-      color: Colors.white,
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              // PRODUCT NAME
-              Expanded(
-                child: TextField(
-                  controller: _nameController,
-                  decoration: InputDecoration(
-                    hintText: 'Product name',
-                    prefixIcon: const Icon(Icons.inventory_2),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  onChanged: (_) => setState(() {}),
-                ),
-              ),
-              const SizedBox(width: 12),
+  Widget _buildAddProductForm(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
 
-              // PRICE
-              SizedBox(
-                width: 120,
-                child: TextField(
-                  controller: _priceController,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    hintText: 'Price',
-                    prefixText: '₹ ',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  onChanged: (_) => setState(() {}),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              // CATEGORY DROPDOWN
-              Expanded(
-                child: StreamBuilder<List<Category>>(
-                  stream: _categoryService.categoriesStream,
-                  builder: (context, snapshot) {
-                    final categories = snapshot.data ?? [];
-
-                    return DropdownButtonFormField<String>(
-                      initialValue: _selectedCategoryId,
-                      hint: const Text('Select Category'),
-                      decoration: InputDecoration(
-                        prefixIcon: const Icon(Icons.category),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: scheme.surfaceContainerHigh,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: scheme.outlineVariant),
+        ),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                // PRODUCT NAME
+                Expanded(
+                  child: TextField(
+                    controller: _nameController,
+                    decoration: InputDecoration(
+                      hintText: 'Product name',
+                      prefixIcon: const Icon(Icons.inventory_2),
+                      filled: true,
+                      fillColor: scheme.surfaceContainerHighest,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
                       ),
-                      items: categories.map((cat) {
-                        return DropdownMenuItem<String>(
-                          value: cat.id,
-                          child: Text(cat.name),
-                        );
-                      }).toList(),
-                      onChanged: (value) {
-                        final selected =
-                            categories.firstWhere((c) => c.id == value);
-
-                        setState(() {
-                          _selectedCategoryId = selected.id;
-                          _selectedCategoryName = selected.name;
-                        });
-                      },
-                    );
-                  },
+                    ),
+                    onChanged: (_) => setState(() {}),
+                  ),
                 ),
-              ),
+                const SizedBox(width: 12),
 
-              const SizedBox(width: 12),
-
-              // ADD BUTTON
-              ElevatedButton.icon(
-                onPressed: _canAddProduct() ? _addProduct : null,
-                icon: const Icon(Icons.add),
-                label: const Text('Add'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF781C2E),
+                // PRICE
+                SizedBox(
+                  width: 120,
+                  child: TextField(
+                    controller: _priceController,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      hintText: 'Price',
+                      prefixText: '₹ ',
+                      filled: true,
+                      fillColor: scheme.surfaceContainerHighest,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                    onChanged: (_) => setState(() {}),
+                  ),
                 ),
-              ),
-            ],
-          ),
-        ],
+              ],
+            ),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                // CATEGORY DROPDOWN
+                Expanded(
+                  child: StreamBuilder<List<Category>>(
+                    stream: _categoryService.categoriesStream,
+                    builder: (context, snapshot) {
+                      final categories = snapshot.data ?? [];
+
+                      return DropdownButtonFormField<String>(
+                        initialValue: _selectedCategoryId,
+                        hint: const Text('Select Category'),
+                        decoration: InputDecoration(
+                          prefixIcon: const Icon(Icons.category),
+                          filled: true,
+                          fillColor: scheme.surfaceContainerHighest,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
+                        items: categories.map((cat) {
+                          return DropdownMenuItem<String>(
+                            value: cat.id,
+                            child: Text(cat.name),
+                          );
+                        }).toList(),
+                        onChanged: (value) {
+                          final selected =
+                              categories.firstWhere((c) => c.id == value);
+
+                          setState(() {
+                            _selectedCategoryId = selected.id;
+                            _selectedCategoryName = selected.name;
+                          });
+                        },
+                      );
+                    },
+                  ),
+                ),
+
+                const SizedBox(width: 12),
+
+                // ADD BUTTON
+                ElevatedButton.icon(
+                  onPressed: _canAddProduct() ? _addProduct : null,
+                  icon: const Icon(Icons.add),
+                  label: const Text('Add'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: scheme.primary,
+                    foregroundColor: scheme.onPrimary,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 16,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -150,7 +193,10 @@ class _ProductsScreenState extends State<ProductsScreen> {
   // =============================
   // PRODUCTS LIST (APPROVED)
   // =============================
-  Widget _buildProductsList() {
+  Widget _buildProductsList(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
     return StreamBuilder<List<Product>>(
       stream: _productService.approvedProductsStream(),
       builder: (context, snapshot) {
@@ -177,23 +223,36 @@ class _ProductsScreenState extends State<ProductsScreen> {
         }
 
         return ListView.builder(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
           itemCount: products.length,
           itemBuilder: (context, index) {
             final product = products[index];
 
-            return Card(
-              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+            return AdminCard(
               child: ListTile(
+                contentPadding: const EdgeInsets.all(16),
                 leading: CircleAvatar(
-                  backgroundColor: const Color(0xFF781C2E),
+                  backgroundColor: scheme.primary,
                   child: Text(
                     product.name[0].toUpperCase(),
-                    style: const TextStyle(color: Colors.white),
+                    style: TextStyle(color: scheme.onPrimary),
                   ),
                 ),
-                title: Text(product.name),
+                title: Text(
+                  product.name,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: scheme.onSurface,
+                  ),
+                ),
                 subtitle: Text(
                   '₹${product.price.toStringAsFixed(2)} • ${product.categoryName}',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+                trailing: Icon(
+                  Icons.chevron_right_rounded,
+                  color: scheme.onSurfaceVariant,
                 ),
                 onTap: () => _showProductDetails(product),
               ),
@@ -219,9 +278,9 @@ class _ProductsScreenState extends State<ProductsScreen> {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please login to add products'),
-          backgroundColor: Colors.red,
+        SnackBar(
+          content: const Text('Please login to add products'),
+          backgroundColor: Theme.of(context).colorScheme.error,
         ),
       );
       return;
@@ -237,6 +296,8 @@ class _ProductsScreenState extends State<ProductsScreen> {
         userName: user.displayName ?? user.email ?? 'Unknown User',
       );
 
+      if (!mounted) return;
+
       _nameController.clear();
       _priceController.clear();
 
@@ -246,16 +307,17 @@ class _ProductsScreenState extends State<ProductsScreen> {
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Product submitted for admin approval'),
-          backgroundColor: Color(0xFF781C2E),
+        SnackBar(
+          content: const Text('Product submitted for admin approval'),
+          backgroundColor: Theme.of(context).colorScheme.primary,
         ),
       );
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error adding product: $e'),
-          backgroundColor: Colors.red,
+          backgroundColor: Theme.of(context).colorScheme.error,
         ),
       );
     }
@@ -268,8 +330,17 @@ class _ProductsScreenState extends State<ProductsScreen> {
     showDialog(
       context: context,
       builder: (context) {
+        final theme = Theme.of(context);
+        final scheme = theme.colorScheme;
+
         return AlertDialog(
-          title: const Text('Product Details'),
+          backgroundColor: scheme.surfaceContainerHigh,
+          title: Text(
+            'Product Details',
+            style: theme.textTheme.titleLarge?.copyWith(
+              color: scheme.onSurface,
+            ),
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,

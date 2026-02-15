@@ -57,6 +57,7 @@ class _AdminKycScreenState extends State<AdminKycScreen> {
                 pinned: true,
                 delegate: _SearchHeaderDelegate(
                   backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+                  height: 96,
                   child: _buildSearchField(),
                 ),
               ),
@@ -341,7 +342,7 @@ class _SearchHeaderDelegate extends SliverPersistentHeaderDelegate {
   _SearchHeaderDelegate({
     required this.child,
     required this.backgroundColor,
-    this.height = 96,
+    required this.height,
   });
 
   final Widget child;

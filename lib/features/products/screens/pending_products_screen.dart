@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+
+import '../../../core/widgets/admin_widgets.dart';
 import '../services/product_service.dart';
 import '../models/product.dart';
 
@@ -10,83 +12,96 @@ class PendingProductsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF9F6EE),
+      backgroundColor: scheme.surface,
       appBar: AppBar(
         title: const Text("Pending Approvals"),
-        backgroundColor: const Color(0xFF781C2E),
-        foregroundColor: Colors.white,
+        backgroundColor: scheme.primary,
+        foregroundColor: scheme.onPrimary,
+        elevation: 0,
       ),
-      body: StreamBuilder<List<Product>>(
-        stream: _productService.pendingProductsStream(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
+      body: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              scheme.surface,
+              scheme.surfaceContainerHighest,
+            ],
+          ),
+        ),
+        child: StreamBuilder<List<Product>>(
+          stream: _productService.pendingProductsStream(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-          if (snapshot.hasError) {
-            return Center(
-              child: Text(
-                'Error loading products: ${snapshot.error}',
-                style: const TextStyle(color: Colors.red),
-              ),
-            );
-          }
+            if (snapshot.hasError) {
+              return Center(
+                child: Text(
+                  'Error loading products: ${snapshot.error}',
+                  style: TextStyle(color: scheme.error),
+                ),
+              );
+            }
 
-          final products = snapshot.data ?? [];
+            final products = snapshot.data ?? [];
 
-          if (products.isEmpty) {
-            return const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.verified,
-                    size: 80,
-                    color: Colors.green,
-                  ),
-                  SizedBox(height: 16),
-                  Text(
-                    "No pending approvals 🎉",
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.grey,
+            if (products.isEmpty) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.verified,
+                      size: 80,
+                      color: scheme.tertiary,
                     ),
-                  ),
-                  Text(
-                    "All products have been reviewed",
-                    style: TextStyle(
-                      color: Colors.grey,
+                    const SizedBox(height: 16),
+                    Text(
+                      "No pending approvals 🎉",
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: scheme.onSurface,
+                      ),
                     ),
-                  ),
-                ],
-              ),
-            );
-          }
+                    Text(
+                      "All products have been reviewed",
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
 
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: products.length,
-            itemBuilder: (context, index) {
-              final product = products[index];
-              return _buildProductCard(context, product);
-            },
-          );
-        },
+            return ListView.builder(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+              itemCount: products.length,
+              itemBuilder: (context, index) {
+                final product = products[index];
+                return _buildProductCard(context, product);
+              },
+            );
+          },
+        ),
       ),
     );
   }
 
   Widget _buildProductCard(BuildContext context, Product product) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: AdminCard(
+        padding: const EdgeInsets.all(18),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -98,19 +113,17 @@ class PendingProductsScreen extends StatelessWidget {
                     children: [
                       Text(
                         product.name,
-                        style: const TextStyle(
-                          fontSize: 18,
+                        style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF1E293B),
+                          color: scheme.onSurface,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         '₹${product.price.toStringAsFixed(0)}',
-                        style: const TextStyle(
-                          fontSize: 16,
+                        style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF781C2E),
+                          color: scheme.primary,
                         ),
                       ),
                     ],
@@ -123,9 +136,9 @@ class PendingProductsScreen extends StatelessWidget {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.orange.withOpacity(0.1),
+                      color: scheme.tertiary.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(4),
-                      border: Border.all(color: Colors.orange),
+                      border: Border.all(color: scheme.tertiary),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -138,8 +151,7 @@ class PendingProductsScreen extends StatelessWidget {
                         const SizedBox(width: 4),
                         Text(
                           'Risk: ${product.riskScore}',
-                          style: const TextStyle(
-                            fontSize: 12,
+                          style: theme.textTheme.bodySmall?.copyWith(
                             fontWeight: FontWeight.w600,
                             color: Colors.orange,
                           ),
@@ -152,9 +164,8 @@ class PendingProductsScreen extends StatelessWidget {
             const SizedBox(height: 12),
             Text(
               'Category: ${product.categoryName}',
-              style: TextStyle(
-                color: Colors.grey[600],
-                fontSize: 14,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: scheme.onSurfaceVariant,
               ),
             ),
             const SizedBox(height: 4),
@@ -163,9 +174,8 @@ class PendingProductsScreen extends StatelessWidget {
               builder: (context, snapshot) {
                 return Text(
                   'Owner: ${snapshot.data ?? 'Loading...'}',
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    fontSize: 14,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: scheme.onSurfaceVariant,
                   ),
                 );
               },
@@ -179,8 +189,8 @@ class PendingProductsScreen extends StatelessWidget {
                     icon: const Icon(Icons.close, size: 18),
                     label: const Text('Reject'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
-                      foregroundColor: Colors.white,
+                      backgroundColor: scheme.error,
+                      foregroundColor: scheme.onError,
                       elevation: 0,
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(
@@ -196,8 +206,8 @@ class PendingProductsScreen extends StatelessWidget {
                     icon: const Icon(Icons.check, size: 18),
                     label: const Text('Approve'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF781C2E),
-                      foregroundColor: Colors.white,
+                      backgroundColor: scheme.primary,
+                      foregroundColor: scheme.onPrimary,
                       elevation: 0,
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(
@@ -231,9 +241,9 @@ class PendingProductsScreen extends StatelessWidget {
       await _productService.approveProduct(productId);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Product approved successfully'),
-            backgroundColor: Colors.green,
+          SnackBar(
+            content: const Text('Product approved successfully'),
+            backgroundColor: Theme.of(context).colorScheme.tertiary,
           ),
         );
       }
@@ -242,7 +252,7 @@ class PendingProductsScreen extends StatelessWidget {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error approving product: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
       }
@@ -296,9 +306,9 @@ class PendingProductsScreen extends StatelessWidget {
                 await _productService.rejectProduct(productId, reason: reason);
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Product rejected successfully'),
-                      backgroundColor: Colors.orange,
+                    SnackBar(
+                      content: const Text('Product rejected successfully'),
+                      backgroundColor: Theme.of(context).colorScheme.error,
                     ),
                   );
                 }
@@ -307,15 +317,15 @@ class PendingProductsScreen extends StatelessWidget {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('Error rejecting product: $e'),
-                      backgroundColor: Colors.red,
+                      backgroundColor: Theme.of(context).colorScheme.error,
                     ),
                   );
                 }
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
+              backgroundColor: Theme.of(context).colorScheme.error,
+              foregroundColor: Theme.of(context).colorScheme.onError,
             ),
             child: const Text('Reject'),
           ),

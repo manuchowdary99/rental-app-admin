@@ -7,29 +7,54 @@ class UsersManagementScreen extends StatefulWidget {
   const UsersManagementScreen({super.key});
 
   @override
-  State<UsersManagementScreen> createState() =>
-      _UsersManagementScreenState();
+  State<UsersManagementScreen> createState() => _UsersManagementScreenState();
 }
 
-class _UsersManagementScreenState
-    extends State<UsersManagementScreen> {
+class _UsersManagementScreenState extends State<UsersManagementScreen> {
   String _searchQuery = '';
   String _filterStatus = 'All';
 
-  final _usersRef =
-      FirebaseFirestore.instance.collection('users');
+  final _usersRef = FirebaseFirestore.instance.collection('users');
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF9F6EE),
-      body: SafeArea(
-        child: Column(
-          children: [
-            _buildHeader(),
-            _buildSearchAndFilter(),
-            Expanded(child: _buildUsersList()),
-          ],
+      backgroundColor: scheme.surface,
+      body: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              scheme.surface,
+              scheme.surfaceContainerHighest,
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: CustomScrollView(
+            slivers: [
+              SliverToBoxAdapter(child: _buildHeader(context)),
+              SliverPersistentHeader(
+                pinned: true,
+                delegate: _StickySearchBarDelegate(
+                  minExtent: 92,
+                  maxExtent: 108,
+                  child: _buildPinnedSearchBar(context),
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: _buildFilterSection(context),
+              ),
+              _buildUsersSliver(context),
+              const SliverPadding(
+                padding: EdgeInsets.only(bottom: 32),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -38,57 +63,60 @@ class _UsersManagementScreenState
   // ==========================
   // USERS LIST
   // ==========================
-  Widget _buildUsersList() {
+  Widget _buildUsersSliver(BuildContext context) {
     return StreamBuilder<QuerySnapshot>(
       stream: _usersRef.snapshots(),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
-          return const Center(
-            child: EmptyState(
-              icon: Icons.error_outline_rounded,
-              title: 'Something went wrong',
-              subtitle: 'Unable to load users',
+          return const SliverFillRemaining(
+            hasScrollBody: false,
+            child: Center(
+              child: EmptyState(
+                icon: Icons.error_outline_rounded,
+                title: 'Something went wrong',
+                subtitle: 'Unable to load users',
+              ),
             ),
           );
         }
 
         if (!snapshot.hasData) {
-          return const LoadingState(message: 'Loading users...');
+          return const SliverFillRemaining(
+            hasScrollBody: false,
+            child: LoadingState(message: 'Loading users...'),
+          );
         }
 
         final docs = snapshot.data!.docs;
 
         if (docs.isEmpty) {
-          return const Center(
-            child: EmptyState(
-              icon: Icons.people_outline_rounded,
-              title: 'No users found',
-              subtitle: 'Users will appear here once they register',
+          return const SliverFillRemaining(
+            hasScrollBody: false,
+            child: Center(
+              child: EmptyState(
+                icon: Icons.people_outline_rounded,
+                title: 'No users found',
+                subtitle: 'Users will appear here once they register',
+              ),
             ),
           );
         }
 
         final filteredDocs = docs.where((doc) {
           final data = doc.data() as Map<String, dynamic>;
-          final name =
-              (data['displayName'] ?? '').toString().toLowerCase();
-          final email =
-              (data['email'] ?? '').toString().toLowerCase();
+          final name = (data['displayName'] ?? '').toString().toLowerCase();
+          final email = (data['email'] ?? '').toString().toLowerCase();
 
           final role = (data['role'] ?? 'normal').toString();
-          final status =
-              (data['status'] ?? 'active').toString();
-          final kycStatus =
-              (data['kycStatus'] ?? 'not_submitted').toString();
+          final status = (data['status'] ?? 'active').toString();
+          final kycStatus = (data['kycStatus'] ?? 'not_submitted').toString();
 
-          // Search
           if (_searchQuery.isNotEmpty &&
               !name.contains(_searchQuery.toLowerCase()) &&
               !email.contains(_searchQuery.toLowerCase())) {
             return false;
           }
 
-          // Filters
           if (_filterStatus != 'All') {
             switch (_filterStatus) {
               case 'Active':
@@ -108,23 +136,30 @@ class _UsersManagementScreenState
         }).toList();
 
         if (filteredDocs.isEmpty) {
-          return const Center(
-            child: EmptyState(
-              icon: Icons.search_off_rounded,
-              title: 'No users match filters',
-              subtitle: 'Try adjusting your search or filters',
+          return const SliverFillRemaining(
+            hasScrollBody: false,
+            child: Center(
+              child: EmptyState(
+                icon: Icons.search_off_rounded,
+                title: 'No users match filters',
+                subtitle: 'Try adjusting your search or filters',
+              ),
             ),
           );
         }
 
-        return ListView.builder(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          itemCount: filteredDocs.length,
-          itemBuilder: (context, index) {
-            final doc = filteredDocs[index];
-            final data = doc.data() as Map<String, dynamic>;
-            return _buildUserCard(doc, data);
-          },
+        return SliverPadding(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+          sliver: SliverList(
+            delegate: SliverChildBuilderDelegate(
+              (context, index) {
+                final doc = filteredDocs[index];
+                final data = doc.data() as Map<String, dynamic>;
+                return _buildUserCard(context, doc, data);
+              },
+              childCount: filteredDocs.length,
+            ),
+          ),
         );
       },
     );
@@ -134,6 +169,7 @@ class _UsersManagementScreenState
   // USER CARD
   // ==========================
   Widget _buildUserCard(
+    BuildContext context,
     QueryDocumentSnapshot doc,
     Map<String, dynamic> data,
   ) {
@@ -142,13 +178,16 @@ class _UsersManagementScreenState
 
     final role = (data['role'] ?? 'normal').toString();
     final status = (data['status'] ?? 'active').toString();
-    final kycStatus =
-        (data['kycStatus'] ?? 'not_submitted').toString();
+    final kycStatus = (data['kycStatus'] ?? 'not_submitted').toString();
 
     final isBlocked = status == 'blocked';
     final photoUrl = data['photoURL'] as String?;
 
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
     return AdminCard(
+      color: scheme.surfaceContainerHighest,
       onTap: () {
         _showUserDetails(doc, data);
       },
@@ -162,14 +201,13 @@ class _UsersManagementScreenState
               gradient: LinearGradient(
                 colors: [
                   _getRoleColor(role),
-                  _getRoleColor(role).withOpacity(0.8),
+                  _getRoleColor(role).withValues(alpha: 0.8),
                 ],
               ),
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color:
-                      _getRoleColor(role).withOpacity(0.3),
+                  color: _getRoleColor(role).withValues(alpha: 0.3),
                   blurRadius: 8,
                   offset: const Offset(0, 4),
                 ),
@@ -206,10 +244,9 @@ class _UsersManagementScreenState
                     Expanded(
                       child: Text(
                         displayName,
-                        style: const TextStyle(
-                          fontSize: 16,
+                        style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF1E293B),
+                          color: scheme.onSurface,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -225,9 +262,9 @@ class _UsersManagementScreenState
                 const SizedBox(height: 4),
                 Text(
                   email,
-                  style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[600]),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -236,9 +273,7 @@ class _UsersManagementScreenState
                   children: [
                     StatusChip(
                       text: isBlocked ? 'BLOCKED' : 'ACTIVE',
-                      color: isBlocked
-                          ? Colors.red
-                          : Colors.green,
+                      color: isBlocked ? scheme.error : Colors.green,
                       icon: isBlocked
                           ? Icons.block_rounded
                           : Icons.check_circle_rounded,
@@ -247,7 +282,7 @@ class _UsersManagementScreenState
                     const SizedBox(width: 8),
                     StatusChip(
                       text: 'KYC: ${kycStatus.toUpperCase()}',
-                      color: _getKycColor(kycStatus),
+                      color: _getKycColor(kycStatus, scheme),
                       icon: Icons.badge_rounded,
                       isSmall: true,
                     ),
@@ -257,10 +292,10 @@ class _UsersManagementScreenState
             ),
           ),
 
-          const Icon(
+          Icon(
             Icons.arrow_forward_ios_rounded,
             size: 16,
-            color: Color(0xFF781C2E),
+            color: scheme.primary,
           ),
         ],
       ),
@@ -274,6 +309,8 @@ class _UsersManagementScreenState
     QueryDocumentSnapshot doc,
     Map<String, dynamic> data,
   ) {
+    final scheme = Theme.of(context).colorScheme;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -284,15 +321,25 @@ class _UsersManagementScreenState
         minChildSize: 0.5,
         builder: (context, scrollController) {
           return Container(
-            decoration: const BoxDecoration(
-              color: Colors.white,
+            decoration: BoxDecoration(
+              color: scheme.surface,
               borderRadius:
-                  BorderRadius.vertical(top: Radius.circular(20)),
+                  const BorderRadius.vertical(top: Radius.circular(20)),
+              border: Border.all(
+                color: scheme.outline.withValues(alpha: 0.2),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: scheme.shadow.withValues(alpha: 0.4),
+                  blurRadius: 20,
+                  offset: const Offset(0, -6),
+                ),
+              ],
             ),
             child: SingleChildScrollView(
               controller: scrollController,
               padding: const EdgeInsets.all(20),
-              child: _buildUserDetailsContent(doc, data),
+              child: _buildUserDetailsContent(context, doc, data),
             ),
           );
         },
@@ -304,101 +351,77 @@ class _UsersManagementScreenState
   // DETAILS CONTENT
   // ==========================
   Widget _buildUserDetailsContent(
+    BuildContext context,
     QueryDocumentSnapshot doc,
     Map<String, dynamic> data,
   ) {
     final role = (data['role'] ?? 'normal').toString();
     final status = (data['status'] ?? 'active').toString();
-    final kycStatus =
-        (data['kycStatus'] ?? 'not_submitted').toString();
+    final kycStatus = (data['kycStatus'] ?? 'not_submitted').toString();
 
-    final createdAt =
-        (data['createdAt'] as Timestamp?)?.toDate();
-    final lastLogin =
-        (data['lastLoginAt'] as Timestamp?)?.toDate();
+    final createdAt = (data['createdAt'] as Timestamp?)?.toDate();
+    final lastLogin = (data['lastLoginAt'] as Timestamp?)?.toDate();
+
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'User Details',
-          style: TextStyle(
-            fontSize: 24,
+          style: theme.textTheme.headlineSmall?.copyWith(
             fontWeight: FontWeight.bold,
-            color: Color(0xFF1E293B),
+            color: scheme.onSurface,
           ),
         ),
         const SizedBox(height: 20),
-
-        _buildDetailRow('User ID', doc.id),
-        _buildDetailRow('Role', role.toUpperCase()),
-        _buildDetailRow('Status', status.toUpperCase()),
-        _buildDetailRow('KYC', kycStatus.toUpperCase()),
-
+        _buildDetailRow(context, 'User ID', doc.id),
+        _buildDetailRow(context, 'Role', role.toUpperCase()),
+        _buildDetailRow(context, 'Status', status.toUpperCase()),
+        _buildDetailRow(context, 'KYC', kycStatus.toUpperCase()),
         if (createdAt != null)
-          _buildDetailRow(
-              'Joined', _formatDate(createdAt)),
+          _buildDetailRow(context, 'Joined', _formatDate(createdAt)),
         if (lastLogin != null)
-          _buildDetailRow(
-              'Last Login', _formatDate(lastLogin)),
-
+          _buildDetailRow(context, 'Last Login', _formatDate(lastLogin)),
         const SizedBox(height: 20),
-
         Row(
           children: [
             Expanded(
               child: AdminButton(
-                text: status == 'blocked'
-                    ? 'Unblock User'
-                    : 'Block User',
-                color: status == 'blocked'
-                    ? Colors.green
-                    : Colors.red,
+                text: status == 'blocked' ? 'Unblock User' : 'Block User',
+                color: status == 'blocked' ? scheme.primary : scheme.error,
                 icon: status == 'blocked'
                     ? Icons.lock_open_rounded
                     : Icons.block_rounded,
                 onPressed: () => _updateUser(doc.id, {
-                  'status': status == 'blocked'
-                      ? 'active'
-                      : 'blocked',
+                  'status': status == 'blocked' ? 'active' : 'blocked',
                 }),
               ),
             ),
             const SizedBox(width: 10),
             Expanded(
               child: AdminButton(
-                text: role == 'premium'
-                    ? 'Remove Premium'
-                    : 'Make Premium',
-                color: Colors.amber,
+                text: role == 'premium' ? 'Remove Premium' : 'Make Premium',
+                color: scheme.tertiary,
                 icon: Icons.star_rounded,
                 isOutlined: true,
                 onPressed: () => _updateUser(doc.id, {
-                  'role': role == 'premium'
-                      ? 'normal'
-                      : 'premium',
+                  'role': role == 'premium' ? 'normal' : 'premium',
                 }),
               ),
             ),
           ],
         ),
-
         const SizedBox(height: 10),
-
         AdminButton(
-          text: role == 'trusted'
-              ? 'Remove Trusted'
-              : 'Mark Trusted',
-          color: Colors.blue,
+          text: role == 'trusted' ? 'Remove Trusted' : 'Mark Trusted',
+          color: scheme.secondary,
           icon: Icons.verified_user_rounded,
           isOutlined: true,
           onPressed: () => _updateUser(doc.id, {
-            'role': role == 'trusted'
-                ? 'normal'
-                : 'trusted',
-            'kycStatus': role == 'trusted'
-                ? 'not_submitted'
-                : 'approved',
+            'role': role == 'trusted' ? 'normal' : 'trusted',
+            'kycStatus': role == 'trusted' ? 'not_submitted' : 'approved',
           }),
         ),
       ],
@@ -408,33 +431,37 @@ class _UsersManagementScreenState
   // ==========================
   // HELPERS
   // ==========================
-  Future<void> _updateUser(
-      String uid, Map<String, dynamic> data) async {
+  Future<void> _updateUser(String uid, Map<String, dynamic> data) async {
     try {
       await _usersRef.doc(uid).update(data);
 
       if (mounted) {
         Navigator.pop(context);
+        final scheme = Theme.of(context).colorScheme;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('User updated successfully'),
-            backgroundColor: Colors.green,
+          SnackBar(
+            content: const Text('User updated successfully'),
+            backgroundColor: scheme.primary,
           ),
         );
       }
     } catch (e) {
       if (mounted) {
+        final scheme = Theme.of(context).colorScheme;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: scheme.error,
           ),
         );
       }
     }
   }
 
-  Widget _buildDetailRow(String label, String value) {
+  Widget _buildDetailRow(BuildContext context, String label, String value) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Row(
@@ -443,9 +470,8 @@ class _UsersManagementScreenState
             width: 90,
             child: Text(
               label,
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[600],
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: scheme.onSurfaceVariant,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -453,9 +479,8 @@ class _UsersManagementScreenState
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(
-                fontSize: 14,
-                color: Color(0xFF1E293B),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: scheme.onSurface,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -482,16 +507,19 @@ class _UsersManagementScreenState
     }
   }
 
-  Color _getKycColor(String status) {
+  Color _getKycColor(String status, ColorScheme scheme) {
     switch (status) {
       case 'approved':
+      case 'submitted':
         return Colors.green;
       case 'pending':
-        return Colors.orange;
+        return Colors.amber;
       case 'rejected':
         return Colors.red;
+      case 'not_submitted':
+        return Colors.red;
       default:
-        return Colors.grey;
+        return scheme.outlineVariant;
     }
   }
 
@@ -511,7 +539,10 @@ class _UsersManagementScreenState
   // ==========================
   // HEADER + FILTER UI
   // ==========================
-  Widget _buildHeader() {
+  Widget _buildHeader(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
     return Container(
       padding: const EdgeInsets.all(20),
       child: Row(
@@ -520,36 +551,41 @@ class _UsersManagementScreenState
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
+              gradient: LinearGradient(
                 colors: [
-                  Color(0xFF781C2E),
-                  Color(0xFF5A1521)
+                  scheme.primary,
+                  scheme.primary.withValues(alpha: 0.8),
                 ],
               ),
               borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: scheme.primary.withValues(alpha: 0.3),
+                  blurRadius: 12,
+                  offset: const Offset(0, 6),
+                ),
+              ],
             ),
-            child: const Icon(Icons.people_rounded,
-                color: Colors.white),
+            child: const Icon(Icons.people_rounded, color: Colors.white),
           ),
           const SizedBox(width: 16),
-          const Expanded(
+          Expanded(
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   'Users Management',
-                  style: TextStyle(
-                    fontSize: 24,
+                  style: theme.textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF1E293B),
+                    color: scheme.onSurface,
                   ),
                 ),
+                const SizedBox(height: 4),
                 Text(
                   'Manage platform users',
-                  style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
                 ),
               ],
             ),
@@ -559,41 +595,72 @@ class _UsersManagementScreenState
     );
   }
 
-  Widget _buildSearchAndFilter() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Column(
-        children: [
-          TextField(
+  Widget _buildPinnedSearchBar(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 14),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 460),
+          child: TextField(
             onChanged: (value) {
               setState(() {
                 _searchQuery = value;
               });
             },
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               hintText: 'Search users...',
-              prefixIcon: Icon(Icons.search_rounded),
-              border: OutlineInputBorder(),
+              prefixIcon: const Icon(Icons.search_rounded),
+              filled: true,
+              fillColor: scheme.surfaceContainerHigh,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide(
+                  color: scheme.outlineVariant,
+                ),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide(
+                  color: scheme.outlineVariant,
+                ),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide(
+                  color: scheme.primary,
+                  width: 1.5,
+                ),
+              ),
             ),
           ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            children: [
-              _buildFilterChip('All'),
-              _buildFilterChip('Active'),
-              _buildFilterChip('Blocked'),
-              _buildFilterChip('Trusted'),
-              _buildFilterChip('Premium'),
-              _buildFilterChip('KYC Pending'),
-            ],
-          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFilterSection(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: [
+          _buildFilterChip(context, 'All'),
+          _buildFilterChip(context, 'Active'),
+          _buildFilterChip(context, 'Blocked'),
+          _buildFilterChip(context, 'Trusted'),
+          _buildFilterChip(context, 'Premium'),
+          _buildFilterChip(context, 'KYC Pending'),
         ],
       ),
     );
   }
 
-  Widget _buildFilterChip(String filter) {
+  Widget _buildFilterChip(BuildContext context, String filter) {
+    final scheme = Theme.of(context).colorScheme;
     final isSelected = _filterStatus == filter;
 
     return ChoiceChip(
@@ -604,12 +671,64 @@ class _UsersManagementScreenState
           _filterStatus = filter;
         });
       },
-      selectedColor: const Color(0xFF781C2E),
+      selectedColor: scheme.primary,
       labelStyle: TextStyle(
-        color: isSelected
-            ? Colors.white
-            : Colors.black,
+        color: isSelected ? Colors.white : scheme.onSurface,
       ),
     );
+  }
+}
+
+class _StickySearchBarDelegate extends SliverPersistentHeaderDelegate {
+  _StickySearchBarDelegate({
+    required this.child,
+    required this.minExtent,
+    required this.maxExtent,
+  });
+
+  final Widget child;
+
+  @override
+  final double minExtent;
+
+  @override
+  final double maxExtent;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    final scheme = Theme.of(context).colorScheme;
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            scheme.surface,
+            scheme.surfaceContainerHighest,
+          ],
+        ),
+        boxShadow: [
+          if (shrinkOffset > 0 || overlapsContent)
+            BoxShadow(
+              color: scheme.shadow.withValues(alpha: 0.35),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+        ],
+      ),
+      child: SizedBox.expand(child: child),
+    );
+  }
+
+  @override
+  bool shouldRebuild(covariant _StickySearchBarDelegate oldDelegate) {
+    return minExtent != oldDelegate.minExtent ||
+        maxExtent != oldDelegate.maxExtent ||
+        child != oldDelegate.child;
   }
 }

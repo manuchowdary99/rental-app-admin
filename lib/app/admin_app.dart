@@ -11,6 +11,9 @@ import '../features/users/presentation/users_management_screen.dart';
 import '../features/kyc/presentation/admin_kyc_screen.dart';
 import '../features/orders/presentation/admin_orders_screen.dart';
 import '../features/support/presentation/admin_support_tickets_screen.dart';
+import '../features/profile/presentation/admin_profile_screen.dart';
+import '../features/profile/presentation/admin_profile_edit_screen.dart';
+import '../features/profile/presentation/admin_change_password_screen.dart';
 
 final authStateChangesProvider = StreamProvider<AdminAuthState>(
   (ref) => ref.read(authServiceProvider).adminAuthStateChanges(),
@@ -38,8 +41,11 @@ class AdminApp extends ConsumerWidget {
         '/users': (context) => const UsersManagementScreen(),
         '/kyc': (context) => const AdminKycScreen(),
         '/orders': (context) => const AdminOrdersScreen(),
-        '/support-tickets': (context) =>
-            const AdminSupportTicketsScreen(),
+        '/support-tickets': (context) => const AdminSupportTicketsScreen(),
+        '/admin-profile': (context) => const AdminProfileScreen(),
+        '/admin-profile/edit': (context) => const AdminProfileEditScreen(),
+        '/admin-profile/change-password': (context) =>
+            const AdminChangePasswordScreen(),
       },
 
       // ✅ Authentication Handling
@@ -54,13 +60,11 @@ class AdminApp extends ConsumerWidget {
               return const LoginScreen();
           }
         },
-
         loading: () => const Scaffold(
           body: Center(
             child: CircularProgressIndicator(),
           ),
         ),
-
         error: (e, _) => LoginScreen(
           initialError: 'Error: $e',
         ),

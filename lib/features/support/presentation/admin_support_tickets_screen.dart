@@ -6,64 +6,83 @@ class AdminSupportTicketsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material( // ✅ FIX: Provide Material ancestor
-      color: const Color(0xFFF6F7FB),
-      child: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('support_tickets')
-            .orderBy('createdAt', descending: true)
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
 
-          final tickets = snapshot.data!.docs;
+    return Scaffold(
+      backgroundColor: scheme.surface,
+      body: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              scheme.surface,
+              scheme.surfaceContainerHighest,
+            ],
+          ),
+        ),
+        child: StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('support_tickets')
+              .orderBy('createdAt', descending: true)
+              .snapshots(),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-          if (tickets.isEmpty) {
-            return const Center(
-              child: Text(
-                "No Support Tickets Found",
-                style: TextStyle(fontSize: 16),
-              ),
-            );
-          }
+            final tickets = snapshot.data!.docs;
 
-          return ListView.builder(
-            padding: const EdgeInsets.all(20),
-            itemCount: tickets.length,
-            itemBuilder: (context, index) {
-              final ticket = tickets[index];
-
-              return Card(
-                margin: const EdgeInsets.only(bottom: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                elevation: 2,
-                child: ListTile(
-                  contentPadding: const EdgeInsets.all(16),
-                  title: Text(
-                    ticket['subject'] ?? '',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
+            if (tickets.isEmpty) {
+              return Center(
+                child: Text(
+                  "No Support Tickets Found",
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    color: scheme.onSurfaceVariant,
                   ),
-                  subtitle: Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: Text(
-                      "Status: ${ticket['status']}  |  Priority: ${ticket['priority']}",
-                      style: const TextStyle(fontSize: 13),
-                    ),
-                  ),
-                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                  onTap: () => _openTicket(context, ticket),
                 ),
               );
-            },
-          );
-        },
+            }
+
+            return ListView.builder(
+              padding: const EdgeInsets.all(20),
+              itemCount: tickets.length,
+              itemBuilder: (context, index) {
+                final ticket = tickets[index];
+
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  elevation: 2,
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.all(16),
+                    title: Text(
+                      ticket['subject'] ?? '',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    subtitle: Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text(
+                        "Status: ${ticket['status']}  |  Priority: ${ticket['priority']}",
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                    trailing: Icon(Icons.arrow_forward_ios,
+                        size: 16, color: scheme.onSurfaceVariant),
+                    onTap: () => _openTicket(context, ticket),
+                  ),
+                );
+              },
+            );
+          },
+        ),
       ),
     );
   }
@@ -109,7 +128,7 @@ class AdminSupportTicketsScreen extends StatelessWidget {
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF781C2E),
+              backgroundColor: Theme.of(context).colorScheme.primary,
             ),
             onPressed: () {
               FirebaseFirestore.instance

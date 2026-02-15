@@ -8,13 +8,24 @@ class UserDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     final usersRef = FirebaseFirestore.instance.collection('users');
     final itemsRef = FirebaseFirestore.instance.collection('items');
     final ordersRef = FirebaseFirestore.instance.collection('orders');
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('User Details')),
-      body: SingleChildScrollView(
+    final gradientBackground = DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            scheme.surface,
+            scheme.surfaceContainerHighest,
+          ],
+        ),
+      ),
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -38,32 +49,48 @@ class UserDetailScreen extends StatelessWidget {
               },
             ),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'Listings by this user',
-              style: TextStyle(fontWeight: FontWeight.bold),
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 8),
             SizedBox(
               height: 200,
               child: StreamBuilder<QuerySnapshot>(
-                stream: itemsRef
-                    .where('ownerId', isEqualTo: userId)
-                    .snapshots(),
+                stream:
+                    itemsRef.where('ownerId', isEqualTo: userId).snapshots(),
                 builder: (context, snapshot) {
                   if (!snapshot.hasData) {
                     return const Center(child: CircularProgressIndicator());
                   }
                   final docs = snapshot.data!.docs;
                   if (docs.isEmpty) {
-                    return const Text('No listings');
+                    return Text(
+                      'No listings',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    );
                   }
                   return ListView(
+                    padding: EdgeInsets.zero,
                     children: docs.map((doc) {
                       final data = doc.data() as Map<String, dynamic>? ?? {};
-                      return ListTile(
-                        title: Text(data['title']?.toString() ?? ''),
-                        subtitle: Text(
-                          'Status: ${data['status'] ?? 'unknown'}',
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        child: ListTile(
+                          title: Text(
+                            data['title']?.toString() ?? '',
+                            style: theme.textTheme.titleSmall,
+                          ),
+                          subtitle: Text(
+                            'Status: ${data['status'] ?? 'unknown'}',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                            ),
+                          ),
                         ),
                       );
                     }).toList(),
@@ -72,32 +99,48 @@ class UserDetailScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'Orders as Lender',
-              style: TextStyle(fontWeight: FontWeight.bold),
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 8),
             SizedBox(
               height: 200,
               child: StreamBuilder<QuerySnapshot>(
-                stream: ordersRef
-                    .where('lenderId', isEqualTo: userId)
-                    .snapshots(),
+                stream:
+                    ordersRef.where('lenderId', isEqualTo: userId).snapshots(),
                 builder: (context, snapshot) {
                   if (!snapshot.hasData) {
                     return const Center(child: CircularProgressIndicator());
                   }
                   final docs = snapshot.data!.docs;
                   if (docs.isEmpty) {
-                    return const Text('No orders as lender');
+                    return Text(
+                      'No orders as lender',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    );
                   }
                   return ListView(
+                    padding: EdgeInsets.zero,
                     children: docs.map((doc) {
                       final data = doc.data() as Map<String, dynamic>? ?? {};
-                      return ListTile(
-                        title: Text('Order: ${doc.id}'),
-                        subtitle: Text(
-                          'Status: ${data['status'] ?? 'unknown'}',
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        child: ListTile(
+                          title: Text(
+                            'Order: ${doc.id}',
+                            style: theme.textTheme.titleSmall,
+                          ),
+                          subtitle: Text(
+                            'Status: ${data['status'] ?? 'unknown'}',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                            ),
+                          ),
                         ),
                       );
                     }).toList(),
@@ -106,9 +149,11 @@ class UserDetailScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'Orders as Borrower',
-              style: TextStyle(fontWeight: FontWeight.bold),
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 8),
             SizedBox(
@@ -123,15 +168,30 @@ class UserDetailScreen extends StatelessWidget {
                   }
                   final docs = snapshot.data!.docs;
                   if (docs.isEmpty) {
-                    return const Text('No orders as borrower');
+                    return Text(
+                      'No orders as borrower',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    );
                   }
                   return ListView(
+                    padding: EdgeInsets.zero,
                     children: docs.map((doc) {
                       final data = doc.data() as Map<String, dynamic>? ?? {};
-                      return ListTile(
-                        title: Text('Order: ${doc.id}'),
-                        subtitle: Text(
-                          'Status: ${data['status'] ?? 'unknown'}',
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        child: ListTile(
+                          title: Text(
+                            'Order: ${doc.id}',
+                            style: theme.textTheme.titleSmall,
+                          ),
+                          subtitle: Text(
+                            'Status: ${data['status'] ?? 'unknown'}',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                            ),
+                          ),
                         ),
                       );
                     }).toList(),
@@ -142,6 +202,12 @@ class UserDetailScreen extends StatelessWidget {
           ],
         ),
       ),
+    );
+
+    return Scaffold(
+      backgroundColor: scheme.surface,
+      appBar: AppBar(title: const Text('User Details')),
+      body: gradientBackground,
     );
   }
 }

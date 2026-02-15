@@ -238,6 +238,50 @@ class AuthService {
   }
 
   // ==========================
+  // CHANGE PASSWORD
+  // ==========================
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      throw FirebaseAuthException(
+        code: 'no-user',
+        message: 'No authenticated admin user found.',
+      );
+    }
+
+    final email = user.email;
+    if (email == null) {
+      throw FirebaseAuthException(
+        code: 'no-email',
+        message: 'Admin account does not have an email address.',
+      );
+    }
+
+    final credential = EmailAuthProvider.credential(
+      email: email,
+      password: currentPassword,
+    );
+
+    await user.reauthenticateWithCredential(credential);
+    await user.updatePassword(newPassword);
+
+    try {
+      await _db.collection('users').doc(user.uid).set(
+        {
+          'passwordLastChangedAt': Timestamp.now(),
+        },
+        SetOptions(merge: true),
+      );
+    } catch (e, stack) {
+      debugPrint('Failed to update password metadata: $e');
+      debugPrint(stack.toString());
+    }
+  }
+
+  // ==========================
   // SIGN OUT
   // ==========================
   Future<void> signOut() => _auth.signOut();

@@ -13,6 +13,7 @@ import '../../orders/presentation/admin_orders_screen.dart';
 import '../../subscriptions/presentation/admin_subscriptions_screen.dart';
 import '../../support/presentation/admin_support_faq_screen.dart';
 import '../../support/presentation/admin_support_tickets_screen.dart';
+import '../../profile/presentation/admin_profile_screen.dart';
 
 import '../../../core/theme/theme_provider.dart';
 
@@ -24,8 +25,7 @@ class AdminMainNavigation extends ConsumerStatefulWidget {
       _AdminMainNavigationState();
 }
 
-class _AdminMainNavigationState
-    extends ConsumerState<AdminMainNavigation> {
+class _AdminMainNavigationState extends ConsumerState<AdminMainNavigation> {
   int selectedIndex = 0;
 
   final List<Widget> screens = [
@@ -39,6 +39,7 @@ class _AdminMainNavigationState
     const AdminSubscriptionsScreen(),
     const AdminSupportFaqScreen(),
     const AdminSupportTicketsScreen(),
+    const AdminProfileScreen(),
   ];
 
   @override
@@ -55,9 +56,7 @@ class _AdminMainNavigationState
         actions: [
           IconButton(
             icon: Icon(
-              themeMode == ThemeMode.dark
-                  ? Icons.light_mode
-                  : Icons.dark_mode,
+              themeMode == ThemeMode.dark ? Icons.light_mode : Icons.dark_mode,
             ),
             onPressed: () {
               ref.read(themeModeProvider.notifier).state =
@@ -90,22 +89,20 @@ class _AdminMainNavigationState
           Expanded(
             child: ListView(
               children: [
+                _section("PROFILE", context),
+                _item(Icons.person_rounded, "Profile", 10),
                 _section("ANALYTICS", context),
                 _analyticsItem(),
-
                 _section("MANAGEMENT", context),
                 _item(Icons.people_rounded, "Users", 1),
                 _item(Icons.subscriptions_rounded, "Subscriptions", 7),
-
                 _section("CATALOG", context),
                 _item(Icons.category_rounded, "Categories", 2),
                 _item(Icons.inventory_2_rounded, "Products", 3),
                 _item(Icons.verified_rounded, "Pending Approvals", 4),
-
                 _section("SECURITY", context),
                 _item(Icons.verified_user_rounded, "KYC Verification", 5),
                 _item(Icons.receipt_long_rounded, "Orders", 6),
-
                 _section("SUPPORT", context),
                 _item(Icons.help_outline, "FAQs", 8),
                 _item(Icons.support_agent_rounded, "Support Tickets", 9),
@@ -179,8 +176,7 @@ class _AdminMainNavigationState
           .where('status', isEqualTo: 'pending')
           .snapshots(),
       builder: (context, snapshot) {
-        final count =
-            snapshot.hasData ? snapshot.data!.docs.length : 0;
+        final count = snapshot.hasData ? snapshot.data!.docs.length : 0;
 
         return _item(
           Icons.analytics_rounded,
@@ -224,8 +220,7 @@ class _AdminMainNavigationState
     final isActive = selectedIndex == index;
 
     return Padding(
-      padding:
-          const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       child: InkWell(
         borderRadius: BorderRadius.circular(14),
         onTap: () {
@@ -234,8 +229,7 @@ class _AdminMainNavigationState
         },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(
-              horizontal: 14, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
             color: isActive
                 ? theme.colorScheme.primary.withOpacity(0.12)
@@ -256,21 +250,18 @@ class _AdminMainNavigationState
                 child: Text(
                   title,
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    fontWeight: isActive
-                        ? FontWeight.w600
-                        : FontWeight.w500,
+                    fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
                     color: theme.colorScheme.onSurface,
                   ),
                 ),
               ),
               if (badge != null)
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: theme.colorScheme.error,
-                    borderRadius:
-                        BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
                     badge,
@@ -296,12 +287,10 @@ class _AdminMainNavigationState
     return Padding(
       padding: const EdgeInsets.all(16),
       child: OutlinedButton.icon(
-        icon: Icon(Icons.logout,
-            color: theme.colorScheme.error),
+        icon: Icon(Icons.logout, color: theme.colorScheme.error),
         label: Text(
           "Logout",
-          style:
-              TextStyle(color: theme.colorScheme.error),
+          style: TextStyle(color: theme.colorScheme.error),
         ),
         onPressed: () async {
           Navigator.pop(context);
@@ -310,17 +299,14 @@ class _AdminMainNavigationState
             context: context,
             builder: (_) => AlertDialog(
               title: const Text("Confirm Logout"),
-              content: const Text(
-                  "Are you sure you want to logout?"),
+              content: const Text("Are you sure you want to logout?"),
               actions: [
                 TextButton(
-                  onPressed: () =>
-                      Navigator.pop(context, false),
+                  onPressed: () => Navigator.pop(context, false),
                   child: const Text("Cancel"),
                 ),
                 TextButton(
-                  onPressed: () =>
-                      Navigator.pop(context, true),
+                  onPressed: () => Navigator.pop(context, true),
                   child: const Text("Logout"),
                 ),
               ],
@@ -347,6 +333,7 @@ class _AdminMainNavigationState
       "Subscriptions",
       "FAQs",
       "Support Tickets",
+      "Admin Profile",
     ];
     return titles[index];
   }

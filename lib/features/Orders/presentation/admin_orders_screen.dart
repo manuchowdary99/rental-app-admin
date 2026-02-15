@@ -32,69 +32,85 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
   // ---------------- BUILD ----------------
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF9F6EE),
-      body: SafeArea(
-        child: CustomScrollView(
-          slivers: [
-            // ================= HEADER (SCROLLS AWAY) =================
-            SliverToBoxAdapter(child: _buildHeader()),
+      backgroundColor: scheme.surface,
+      body: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              scheme.surface,
+              scheme.surfaceContainerHighest,
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: CustomScrollView(
+            slivers: [
+              // ================= HEADER (SCROLLS AWAY) =================
+              SliverToBoxAdapter(child: _buildHeader(context)),
 
-            // ================= STATS (SCROLLS AWAY) =================
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: _buildStatsRow(),
-              ),
-            ),
-
-            // ================= TYPE FILTERS (SCROLLS AWAY) =================
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: _buildTypeFilters(),
-              ),
-            ),
-
-            // ================= STICKY SEARCH + STATUS FILTER =================
-            SliverPersistentHeader(
-              pinned: true,
-              delegate: _StickySearchDelegate(
-                child: Column(
-                  children: [
-                    _buildSearchBar(),
-                    const SizedBox(height: 8),
-                    _buildStatusFilters(),
-                  ],
+              // ================= STATS (SCROLLS AWAY) =================
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: _buildStatsRow(),
                 ),
               ),
-            ),
 
-            // ================= ORDERS LIST =================
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              sliver: _buildOrdersSliver(),
-            ),
-          ],
+              // ================= TYPE FILTERS (SCROLLS AWAY) =================
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _buildTypeFilters(context),
+                ),
+              ),
+
+              // ================= STICKY SEARCH + STATUS FILTER =================
+              SliverPersistentHeader(
+                pinned: true,
+                delegate: _StickySearchDelegate(
+                  child: Column(
+                    children: [
+                      _buildSearchBar(context),
+                      const SizedBox(height: 8),
+                      _buildStatusFilters(context),
+                    ],
+                  ),
+                ),
+              ),
+
+              // ================= ORDERS LIST =================
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                sliver: _buildOrdersSliver(),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
   // ---------------- HEADER ----------------
-  Widget _buildHeader() {
+  Widget _buildHeader(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     return Padding(
       padding: const EdgeInsets.all(20),
       child: Row(
-        children: const [
-          Icon(Icons.receipt_long_rounded, size: 28, color: Color(0xFF781C2E)),
-          SizedBox(width: 12),
+        children: [
+          Icon(Icons.receipt_long_rounded, size: 28, color: scheme.primary),
+          const SizedBox(width: 12),
           Text(
             'Orders',
-            style: TextStyle(
-              fontSize: 24,
+            style: theme.textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.bold,
-              color: Color(0xFF1E293B),
+              color: scheme.onSurface,
             ),
           ),
         ],
@@ -103,7 +119,8 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
   }
 
   // ---------------- SEARCH ----------------
-  Widget _buildSearchBar() {
+  Widget _buildSearchBar(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return TextField(
       onChanged: (value) {
         setState(() => _searchQuery = value.trim().toLowerCase());
@@ -112,7 +129,7 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
         hintText: 'Search by order number or user',
         prefixIcon: const Icon(Icons.search),
         filled: true,
-        fillColor: Colors.white,
+        fillColor: scheme.surfaceContainerHigh,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide.none,
@@ -151,6 +168,7 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
                   value: total.toString(),
                   icon: Icons.list_alt_rounded,
                   color: const Color(0xFF781C2E),
+                  valueColor: Colors.white,
                 ),
               ),
               const SizedBox(width: 12),
@@ -160,6 +178,7 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
                   value: active.toString(),
                   icon: Icons.timelapse_rounded,
                   color: Colors.orange,
+                  valueColor: Colors.white,
                 ),
               ),
               const SizedBox(width: 12),
@@ -169,6 +188,7 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
                   value: completed.toString(),
                   icon: Icons.check_circle_rounded,
                   color: Colors.green,
+                  valueColor: Colors.white,
                 ),
               ),
             ],
@@ -179,48 +199,50 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
   }
 
   // ---------------- FILTERS ----------------
-  Widget _buildTypeFilters() {
+  Widget _buildTypeFilters(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        _filterChip('All', _selectedType == 'all',
+        _filterChip(context, 'All', _selectedType == 'all',
             () => setState(() => _selectedType = 'all')),
         const SizedBox(width: 8),
-        _filterChip('Rentals', _selectedType == 'rental',
+        _filterChip(context, 'Rentals', _selectedType == 'rental',
             () => setState(() => _selectedType = 'rental')),
         const SizedBox(width: 8),
-        _filterChip('Sales', _selectedType == 'sale',
+        _filterChip(context, 'Sales', _selectedType == 'sale',
             () => setState(() => _selectedType = 'sale')),
       ],
     );
   }
 
-  Widget _buildStatusFilters() {
+  Widget _buildStatusFilters(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        _filterChip('All', _selectedStatus == 'all',
+        _filterChip(context, 'All', _selectedStatus == 'all',
             () => setState(() => _selectedStatus = 'all')),
         const SizedBox(width: 8),
-        _filterChip('Active', _selectedStatus == 'active',
+        _filterChip(context, 'Active', _selectedStatus == 'active',
             () => setState(() => _selectedStatus = 'active')),
         const SizedBox(width: 8),
-        _filterChip('Completed', _selectedStatus == 'completed',
+        _filterChip(context, 'Completed', _selectedStatus == 'completed',
             () => setState(() => _selectedStatus = 'completed')),
       ],
     );
   }
 
-  Widget _filterChip(String label, bool selected, VoidCallback onTap) {
+  Widget _filterChip(
+      BuildContext context, String label, bool selected, VoidCallback onTap) {
+    final scheme = Theme.of(context).colorScheme;
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: selected ? const Color(0xFF781C2E) : Colors.white,
+          color: selected ? scheme.primary : scheme.surfaceContainerHigh,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: selected ? const Color(0xFF781C2E) : Colors.grey[300]!,
+            color: selected ? scheme.primary : scheme.outlineVariant,
           ),
         ),
         child: Text(
@@ -228,7 +250,7 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w600,
-            color: selected ? Colors.white : Colors.grey[700],
+            color: selected ? scheme.onPrimary : scheme.onSurfaceVariant,
           ),
         ),
       ),
@@ -381,10 +403,10 @@ class _StickySearchDelegate extends SliverPersistentHeaderDelegate {
   _StickySearchDelegate({required this.child});
 
   @override
-  double get minExtent => 110;
+  double get minExtent => 150;
 
   @override
-  double get maxExtent => 110;
+  double get maxExtent => 150;
 
   @override
   Widget build(
@@ -392,8 +414,20 @@ class _StickySearchDelegate extends SliverPersistentHeaderDelegate {
     double shrinkOffset,
     bool overlapsContent,
   ) {
+    final scheme = Theme.of(context).colorScheme;
+
     return Container(
-      color: const Color(0xFFF9F6EE),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHigh,
+        boxShadow: [
+          if (shrinkOffset > 0 || overlapsContent)
+            BoxShadow(
+              color: scheme.shadow.withValues(alpha: 0.35),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+        ],
+      ),
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       child: child,
     );

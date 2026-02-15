@@ -44,13 +44,24 @@ class _AdminSubscriptionsScreenState extends State<AdminSubscriptionsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: const Color(0xFFF8F4EC),
+    final scheme = Theme.of(context).colorScheme;
+
+    final gradientShell = DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            scheme.surface,
+            scheme.surfaceContainerHighest,
+          ],
+        ),
+      ),
       child: StreamBuilder<List<SubscriptionPlan>>(
         stream: _service.watchPlans(),
         builder: (context, planSnapshot) {
           if (planSnapshot.hasError) {
-            return _buildError('Unable to load plans');
+            return _buildError(context, 'Unable to load plans');
           }
 
           final plans = planSnapshot.data ?? [];
@@ -59,7 +70,7 @@ class _AdminSubscriptionsScreenState extends State<AdminSubscriptionsScreen> {
             stream: _service.watchSubscriptions(),
             builder: (context, subsSnapshot) {
               if (subsSnapshot.hasError) {
-                return _buildError('Unable to load subscriptions');
+                return _buildError(context, 'Unable to load subscriptions');
               }
 
               if (!planSnapshot.hasData || !subsSnapshot.hasData) {
@@ -89,16 +100,29 @@ class _AdminSubscriptionsScreenState extends State<AdminSubscriptionsScreen> {
         },
       ),
     );
+
+    return Scaffold(
+      backgroundColor: scheme.surface,
+      body: gradientShell,
+    );
   }
 
-  Widget _buildError(String message) {
+  Widget _buildError(BuildContext context, String message) {
+    final scheme = Theme.of(context).colorScheme;
+
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.error_outline, size: 32, color: Colors.redAccent),
+          Icon(Icons.error_outline, size: 32, color: scheme.error),
           const SizedBox(height: 12),
-          Text(message),
+          Text(
+            message,
+            style: Theme.of(context)
+                .textTheme
+                .bodyMedium
+                ?.copyWith(color: scheme.onSurface),
+          ),
           const SizedBox(height: 12),
           ElevatedButton(
             onPressed: _service.ensureDefaultPlans,
@@ -119,21 +143,25 @@ class _AdminSubscriptionsScreenState extends State<AdminSubscriptionsScreen> {
     final canceledSubs =
         subscriptions.where((sub) => sub.status == 'canceled').length;
 
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Subscription Management',
-          style: TextStyle(
-            fontSize: 24,
+          style: theme.textTheme.headlineSmall?.copyWith(
             fontWeight: FontWeight.bold,
-            color: Color(0xFF1F1F1F),
+            color: scheme.onSurface,
           ),
         ),
         const SizedBox(height: 6),
-        const Text(
+        Text(
           'Create plans, manage pricing, and control active subscribers.',
-          style: TextStyle(color: Colors.black54),
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: scheme.onSurfaceVariant,
+          ),
         ),
         const SizedBox(height: 18),
         Row(
@@ -143,7 +171,7 @@ class _AdminSubscriptionsScreenState extends State<AdminSubscriptionsScreen> {
                 label: 'Active Plans',
                 value: activePlans.toString(),
                 icon: Icons.view_week_rounded,
-                color: Colors.indigo,
+                color: scheme.primary,
               ),
             ),
             const SizedBox(width: 12),
@@ -152,7 +180,7 @@ class _AdminSubscriptionsScreenState extends State<AdminSubscriptionsScreen> {
                 label: 'Active Subscribers',
                 value: activeSubs.toString(),
                 icon: Icons.verified_user_rounded,
-                color: Colors.green,
+                color: scheme.secondary,
               ),
             ),
             const SizedBox(width: 12),
@@ -161,7 +189,7 @@ class _AdminSubscriptionsScreenState extends State<AdminSubscriptionsScreen> {
                 label: 'Canceled',
                 value: canceledSubs.toString(),
                 icon: Icons.cancel_schedule_send_rounded,
-                color: Colors.redAccent,
+                color: scheme.error,
               ),
             ),
           ],
@@ -380,57 +408,50 @@ class _AdminSubscriptionsScreenState extends State<AdminSubscriptionsScreen> {
   }
 
   Widget _buildSubscriberFilters(List<SubscriptionPlan> plans) {
-    final searchField = Expanded(
-      flex: 2,
-      child: TextField(
-        controller: _searchController,
-        onChanged: (_) => setState(() {}),
-        decoration: const InputDecoration(
-          prefixIcon: Icon(Icons.search),
-          hintText: 'Search subscriber or plan',
-          border: OutlineInputBorder(),
-        ),
+    final searchField = TextField(
+      controller: _searchController,
+      onChanged: (_) => setState(() {}),
+      decoration: const InputDecoration(
+        prefixIcon: Icon(Icons.search),
+        hintText: 'Search subscriber or plan',
+        border: OutlineInputBorder(),
       ),
     );
 
-    final planDropdown = Expanded(
-      child: DropdownButtonFormField<String>(
-        decoration: const InputDecoration(
-          labelText: 'Plan',
-          border: OutlineInputBorder(),
-        ),
-        initialValue: _planFilter,
-        items: [
-          const DropdownMenuItem<String>(
-            value: 'all',
-            child: Text('All plans'),
-          ),
-          ...plans.map(
-            (plan) => DropdownMenuItem<String>(
-              value: plan.id,
-              child: Text(plan.name),
-            ),
-          ),
-        ],
-        onChanged: (value) => setState(() => _planFilter = value ?? 'all'),
+    final planDropdown = DropdownButtonFormField<String>(
+      decoration: const InputDecoration(
+        labelText: 'Plan',
+        border: OutlineInputBorder(),
       ),
+      initialValue: _planFilter,
+      items: [
+        const DropdownMenuItem<String>(
+          value: 'all',
+          child: Text('All plans'),
+        ),
+        ...plans.map(
+          (plan) => DropdownMenuItem<String>(
+            value: plan.id,
+            child: Text(plan.name),
+          ),
+        ),
+      ],
+      onChanged: (value) => setState(() => _planFilter = value ?? 'all'),
     );
 
-    final statusDropdown = Expanded(
-      child: DropdownButtonFormField<String>(
-        decoration: const InputDecoration(
-          labelText: 'Status',
-          border: OutlineInputBorder(),
-        ),
-        initialValue: _statusFilter,
-        items: const [
-          DropdownMenuItem(value: 'active', child: Text('Active')),
-          DropdownMenuItem(value: 'canceled', child: Text('Canceled')),
-          DropdownMenuItem(value: 'expired', child: Text('Expired')),
-          DropdownMenuItem(value: 'all', child: Text('All statuses')),
-        ],
-        onChanged: (value) => setState(() => _statusFilter = value ?? 'all'),
+    final statusDropdown = DropdownButtonFormField<String>(
+      decoration: const InputDecoration(
+        labelText: 'Status',
+        border: OutlineInputBorder(),
       ),
+      initialValue: _statusFilter,
+      items: const [
+        DropdownMenuItem(value: 'active', child: Text('Active')),
+        DropdownMenuItem(value: 'canceled', child: Text('Canceled')),
+        DropdownMenuItem(value: 'expired', child: Text('Expired')),
+        DropdownMenuItem(value: 'all', child: Text('All statuses')),
+      ],
+      onChanged: (value) => setState(() => _statusFilter = value ?? 'all'),
     );
 
     return LayoutBuilder(
@@ -450,11 +471,11 @@ class _AdminSubscriptionsScreenState extends State<AdminSubscriptionsScreen> {
 
         return Row(
           children: [
-            searchField,
+            Expanded(flex: 2, child: searchField),
             const SizedBox(width: 12),
-            planDropdown,
+            Expanded(child: planDropdown),
             const SizedBox(width: 12),
-            statusDropdown,
+            Expanded(child: statusDropdown),
           ],
         );
       },
@@ -898,36 +919,43 @@ class _AdminSubscriptionsScreenState extends State<AdminSubscriptionsScreen> {
       (sum, sub) => sum + _resolveSubscriptionAmount(sub, planMap[sub.planId]),
     );
 
+    final scheme = Theme.of(context).colorScheme;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.green.withOpacity(0.1),
+        color: scheme.primary.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
         children: [
-          const Icon(Icons.bar_chart, color: Colors.green),
+          Icon(Icons.bar_chart, color: scheme.primary),
           const SizedBox(width: 12),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
+            children: [
               Text(
                 'Active Revenue',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                ),
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: scheme.onSurface,
+                    ),
               ),
-              Text('Paid subscriptions currently active'),
+              Text(
+                'Paid subscriptions currently active',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+              ),
             ],
           ),
           const Spacer(),
           Text(
             _priceFormat.format(total),
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.green,
-            ),
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: scheme.primary,
+                ),
           ),
         ],
       ),
@@ -953,23 +981,25 @@ class _AdminSubscriptionsScreenState extends State<AdminSubscriptionsScreen> {
       return const SizedBox.shrink();
     }
 
+    final scheme = Theme.of(context).colorScheme;
+
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.orange.withOpacity(0.15),
+        color: scheme.error.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(14),
       ),
       child: Row(
         children: [
-          const Icon(Icons.notifications_active, color: Colors.orange),
+          Icon(Icons.notifications_active, color: scheme.error),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               '$expiringSoon subscription(s) expiring within 5 days',
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Colors.orange,
-              ),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: scheme.error,
+                  ),
             ),
           ),
         ],
@@ -1037,38 +1067,66 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(
-            backgroundColor: color,
-            foregroundColor: Colors.white,
-            child: Icon(icon),
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final iconColor =
+        color.computeLuminance() > 0.5 ? scheme.onSurface : Colors.white;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isCompact = constraints.maxWidth < 160;
+
+        final avatar = CircleAvatar(
+          backgroundColor: color,
+          foregroundColor: iconColor,
+          child: Icon(icon),
+        );
+
+        final metricText = Column(
+          crossAxisAlignment:
+              isCompact ? CrossAxisAlignment.center : CrossAxisAlignment.start,
+          children: [
+            Text(
+              value,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: scheme.onSurface,
+              ),
+            ),
+            Text(
+              label,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: scheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        );
+
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(18),
           ),
-          const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                value,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
+          child: isCompact
+              ? Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    avatar,
+                    const SizedBox(height: 12),
+                    metricText,
+                  ],
+                )
+              : Row(
+                  children: [
+                    avatar,
+                    const SizedBox(width: 12),
+                    Expanded(child: metricText),
+                  ],
                 ),
-              ),
-              Text(
-                label,
-                style: const TextStyle(color: Colors.black54),
-              ),
-            ],
-          )
-        ],
-      ),
+        );
+      },
     );
   }
 }
@@ -1088,10 +1146,13 @@ class _PlanCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     final monthly =
         plan.isFree ? 'Free' : '${priceFormat.format(plan.monthlyPrice)}/mo';
     final yearly =
         plan.isFree ? '' : '${priceFormat.format(plan.yearlyPrice)}/yr';
+    final borderColor = plan.active ? scheme.primary : scheme.outline;
 
     return Container(
       width: 260,
@@ -1099,10 +1160,10 @@ class _PlanCard extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: plan.active ? const Color(0xFF781C2E) : Colors.grey[300]!,
+          color: borderColor,
           width: 1.4,
         ),
-        color: Colors.white,
+        color: theme.cardColor,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1112,8 +1173,7 @@ class _PlanCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   plan.name,
-                  style: const TextStyle(
-                    fontSize: 16,
+                  style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -1130,20 +1190,23 @@ class _PlanCard extends StatelessWidget {
                 : plan.audience == 'lender'
                     ? 'Lender tier'
                     : 'Renter tier',
-            style: const TextStyle(color: Colors.black54),
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: scheme.onSurfaceVariant,
+            ),
           ),
           const SizedBox(height: 12),
           Text(
             plan.isFree ? '₹0' : monthly,
-            style: const TextStyle(
-              fontSize: 18,
+            style: theme.textTheme.titleLarge?.copyWith(
               fontWeight: FontWeight.w600,
             ),
           ),
           if (yearly.isNotEmpty)
             Text(
               yearly,
-              style: const TextStyle(color: Colors.black54),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: scheme.onSurfaceVariant,
+              ),
             ),
           if (plan.description != null && plan.description!.isNotEmpty)
             Padding(
@@ -1152,6 +1215,9 @@ class _PlanCard extends StatelessWidget {
                 plan.description!,
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
               ),
             ),
           const SizedBox(height: 12),
@@ -1208,17 +1274,28 @@ class _SubscriberCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final secondary = Theme.of(context).textTheme.bodySmall;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final secondary = theme.textTheme.bodySmall;
     final email = subscription.userEmail?.trim();
     final showEmail = email != null &&
         email.isNotEmpty &&
         email.toLowerCase() != userLabel.trim().toLowerCase();
+    final borderColor = scheme.outline.withValues(alpha: 0.4);
+    final avatarBg = scheme.primary.withValues(alpha: 0.12);
+    final avatarFg = scheme.primary;
+    final chipBg = subscription.isActive
+        ? scheme.primary.withValues(alpha: 0.12)
+        : scheme.surfaceContainerHighest;
+    final chipFg =
+        subscription.isActive ? scheme.primary : scheme.onSurfaceVariant;
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: borderColor),
+        color: theme.cardColor,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1226,8 +1303,8 @@ class _SubscriberCard extends StatelessWidget {
           Row(
             children: [
               CircleAvatar(
-                backgroundColor: Colors.indigo.withOpacity(0.1),
-                foregroundColor: Colors.indigo,
+                backgroundColor: avatarBg,
+                foregroundColor: avatarFg,
                 child: Text(
                   _initials(userLabel),
                 ),
@@ -1248,9 +1325,11 @@ class _SubscriberCard extends StatelessWidget {
               ),
               Chip(
                 label: Text(subscription.status.toUpperCase()),
-                backgroundColor: subscription.isActive
-                    ? Colors.green.withOpacity(0.15)
-                    : Colors.grey.withOpacity(0.15),
+                backgroundColor: chipBg,
+                labelStyle: theme.textTheme.labelSmall?.copyWith(
+                  color: chipFg,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ],
           ),
@@ -1272,18 +1351,18 @@ class _SubscriberCard extends StatelessWidget {
               margin: const EdgeInsets.only(top: 12),
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.orange.withOpacity(0.12),
+                color: scheme.error.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.warning_amber_rounded, color: Colors.orange),
+                  Icon(Icons.warning_amber_rounded, color: scheme.error),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
                       'Expires in $daysLeft day(s)',
-                      style: const TextStyle(
-                        color: Colors.orange,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: scheme.error,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -1296,7 +1375,9 @@ class _SubscriberCard extends StatelessWidget {
               padding: const EdgeInsets.only(top: 8.0),
               child: Text(
                 'Last reason: ${subscription.cancelReason}',
-                style: const TextStyle(color: Colors.black54),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
               ),
             ),
           const SizedBox(height: 12),

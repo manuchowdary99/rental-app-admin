@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../../core/widgets/admin_widgets.dart';
 import '../models/category.dart';
 
 class CategoryTile extends StatelessWidget {
@@ -15,44 +17,72 @@ class CategoryTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      elevation: 2,
-      child: ListTile(
-        contentPadding: const EdgeInsets.all(16),
-        leading: CircleAvatar(
-          backgroundColor:
-              category.isActive ? const Color(0xFF781C2E) : Colors.grey,
-          child: Text(
-            category.name.isNotEmpty ? category.name[0].toUpperCase() : '?',
-            style: const TextStyle(
-                color: Colors.white, fontWeight: FontWeight.bold),
-          ),
-        ),
-        title: Text(
-          category.name,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: category.isActive ? null : Colors.grey[600],
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
+    return AdminCard(
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 26,
+            backgroundColor:
+                category.isActive ? scheme.primary : scheme.outlineVariant,
+            child: Text(
+              category.name.isNotEmpty ? category.name[0].toUpperCase() : '?',
+              style: TextStyle(
+                color: scheme.onPrimary,
+                fontWeight: FontWeight.bold,
               ),
-        ),
-        subtitle: Text(
-          'Created: ${category.createdAt.toDate().toString().split(' ')[0]}',
-          style: TextStyle(color: Colors.grey[600]),
-        ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Switch(
-              value: category.isActive,
-              onChanged: (_) => onToggle(),
-              activeThumbColor: const Color(0xFF781C2E),
             ),
-            IconButton(
-              icon: const Icon(Icons.delete, color: Colors.red),
-              onPressed: onDelete,
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  category.name,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: category.isActive
+                        ? scheme.onSurface
+                        : scheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Created: ${category.createdAt.toDate().toString().split(' ')[0]}',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Switch(
+                value: category.isActive,
+                onChanged: (_) => onToggle(),
+                thumbColor: WidgetStateProperty.resolveWith(
+                  (states) => states.contains(WidgetState.selected)
+                      ? scheme.onPrimary
+                      : scheme.onSurfaceVariant,
+                ),
+                trackColor: WidgetStateProperty.resolveWith(
+                  (states) => states.contains(WidgetState.selected)
+                      ? scheme.primary
+                      : scheme.surfaceVariant,
+                ),
+              ),
+              IconButton(
+                icon: Icon(Icons.delete, color: scheme.error),
+                onPressed: onDelete,
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

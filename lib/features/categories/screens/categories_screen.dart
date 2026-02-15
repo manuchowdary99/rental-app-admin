@@ -28,100 +28,137 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // 🔍 DEBUG (VERY IMPORTANT FOR WEB)
-    print('👤 CURRENT USER: ${FirebaseAuth.instance.currentUser}');
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF9F6EE),
+      backgroundColor: scheme.surface,
       appBar: AppBar(
         title: const Text('Categories'),
-        backgroundColor: const Color(0xFF781C2E),
-        foregroundColor: Colors.white,
+        backgroundColor: scheme.primary,
+        foregroundColor: scheme.onPrimary,
+        elevation: 0,
       ),
-      body: Column(
-        children: [
-          // ======================
-          // ➕ ADD CATEGORY FORM
-          // ======================
-          Container(
-            color: Colors.white,
-            padding: const EdgeInsets.all(20),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _nameController,
-                    decoration: InputDecoration(
-                      hintText: 'Electronics, Furniture, Cars...',
-                      prefixIcon: const Icon(Icons.category),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    onSubmitted: (_) => _addCategory(),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                ElevatedButton.icon(
-                  onPressed: _nameController.text.trim().isEmpty
-                      ? null
-                      : _addCategory,
-                  icon: const Icon(Icons.add),
-                  label: const Text('Add'),
-                ),
-              ],
-            ),
+      body: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              scheme.surface,
+              scheme.surfaceContainerHighest,
+            ],
           ),
-
-          // ======================
-          // 📋 CATEGORY LIST
-          // ======================
-          Expanded(
-            child: StreamBuilder<List<Category>>(
-              stream: _service.categoriesStream,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-
-                if (snapshot.hasError) {
-                  return Center(
-                    child: Text(
-                      'Error: ${snapshot.error}',
-                      style: const TextStyle(color: Colors.red),
-                    ),
-                  );
-                }
-
-                final categories = snapshot.data ?? [];
-
-                if (categories.isEmpty) {
-                  return const Center(
-                    child: Text(
-                      'No categories found',
-                      style: TextStyle(fontSize: 16),
-                    ),
-                  );
-                }
-
-                return ListView.builder(
-                  itemCount: categories.length,
-                  itemBuilder: (context, index) {
-                    final category = categories[index];
-                    return CategoryTile(
-                      category: category,
-                      onToggle: () => _service.toggleCategory(
-                        category.id,
-                        category.isActive,
+        ),
+        child: Column(
+          children: [
+            // ======================
+            // ➕ ADD CATEGORY FORM
+            // ======================
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: scheme.surfaceContainerHigh,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: scheme.outlineVariant),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _nameController,
+                        decoration: InputDecoration(
+                          hintText: 'Electronics, Furniture, Cars...',
+                          prefixIcon: const Icon(Icons.category),
+                          filled: true,
+                          fillColor: scheme.surfaceContainerHighest,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
+                        onSubmitted: (_) => _addCategory(),
                       ),
-                      onDelete: () => _service.deleteCategory(category.id),
+                    ),
+                    const SizedBox(width: 12),
+                    ElevatedButton.icon(
+                      onPressed: _nameController.text.trim().isEmpty
+                          ? null
+                          : _addCategory,
+                      icon: const Icon(Icons.add),
+                      label: const Text('Add'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: scheme.primary,
+                        foregroundColor: scheme.onPrimary,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 16,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // ======================
+            // 📋 CATEGORY LIST
+            // ======================
+            Expanded(
+              child: StreamBuilder<List<Category>>(
+                stream: _service.categoriesStream,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+
+                  if (snapshot.hasError) {
+                    return Center(
+                      child: Text(
+                        'Error: ${snapshot.error}',
+                        style: TextStyle(color: scheme.error),
+                      ),
                     );
-                  },
-                );
-              },
+                  }
+
+                  final categories = snapshot.data ?? [];
+
+                  if (categories.isEmpty) {
+                    return Center(
+                      child: Text(
+                        'No categories found',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      ),
+                    );
+                  }
+
+                  return ListView.builder(
+                    padding: const EdgeInsets.only(bottom: 24),
+                    itemCount: categories.length,
+                    itemBuilder: (context, index) {
+                      final category = categories[index];
+                      return CategoryTile(
+                        category: category,
+                        onToggle: () => _service.toggleCategory(
+                          category.id,
+                          category.isActive,
+                        ),
+                        onDelete: () => _service.deleteCategory(category.id),
+                      );
+                    },
+                  );
+                },
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

@@ -12,8 +12,7 @@ class AnalyticsDashboardScreen extends StatefulWidget {
       _AnalyticsDashboardScreenState();
 }
 
-class _AnalyticsDashboardScreenState
-    extends State<AnalyticsDashboardScreen> {
+class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
   TimeRange selectedRange = TimeRange.all;
 
   DateTime? get _startDate {
@@ -30,16 +29,13 @@ class _AnalyticsDashboardScreenState
     }
   }
 
-  Stream<int> _count(String collection,
-      {String? field, String? equals}) {
-    Query query =
-        FirebaseFirestore.instance.collection(collection);
+  Stream<int> _count(String collection, {String? field, String? equals}) {
+    Query query = FirebaseFirestore.instance.collection(collection);
 
     if (_startDate != null) {
       query = query.where(
         'createdAt',
-        isGreaterThanOrEqualTo:
-            Timestamp.fromDate(_startDate!),
+        isGreaterThanOrEqualTo: Timestamp.fromDate(_startDate!),
       );
     }
 
@@ -51,165 +47,276 @@ class _AnalyticsDashboardScreenState
   }
 
   void _openDetails(String title) {
-    switch (title) {
-      case "Users":
-        Navigator.pushNamed(context, "/users");
-        break;
-      case "Verified":
-        Navigator.pushNamed(context, "/kyc");
-        break;
-      case "Rentals":
-        Navigator.pushNamed(context, "/orders");
-        break;
-      case "Support":
-        Navigator.pushNamed(context, "/support-tickets");
-        break;
+    final routeMap = {
+      'Total Users': '/users',
+      'Verified KYC': '/kyc',
+      'Rentals': '/orders',
+      'Support Tickets': '/support-tickets',
+    };
+
+    final route = routeMap[title];
+    if (route != null) {
+      Navigator.pushNamed(context, route);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F7FB),
+      backgroundColor: theme.colorScheme.surface,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _header(),
-              const SizedBox(height: 24),
-              _kpiRow(),
-              const SizedBox(height: 32),
-              Row(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
-                children: [
-                  const Expanded(child: _KycPieChart()),
-                  const SizedBox(width: 24),
-                  Expanded(
-                    child: _RentalsLineChart(
-                        startDate: _startDate),
-                  ),
-                ],
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final maxWidth = constraints.maxWidth;
+            final isWide = maxWidth >= 1080;
+            final horizontalPadding = maxWidth >= 900
+                ? 32.0
+                : maxWidth >= 600
+                    ? 24.0
+                    : 16.0;
+
+            return ListView(
+              padding: EdgeInsets.fromLTRB(
+                horizontalPadding,
+                28,
+                horizontalPadding,
+                40,
               ),
-            ],
+              children: [
+                _header(theme, maxWidth),
+                const SizedBox(height: 24),
+                _buildKpiGrid(),
+                const SizedBox(height: 32),
+                if (isWide)
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Expanded(child: _KycPieChart()),
+                      const SizedBox(width: 24),
+                      Expanded(
+                        child: _RentalsLineChart(startDate: _startDate),
+                      ),
+                    ],
+                  )
+                else ...[
+                  const _KycPieChart(),
+                  const SizedBox(height: 24),
+                  _RentalsLineChart(startDate: _startDate),
+                ],
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _header(ThemeData theme, double maxWidth) {
+    final isStacked = maxWidth < 600;
+
+    final controls = Wrap(
+      spacing: 10,
+      runSpacing: 10,
+      children: [
+        _rangeButton('Today', TimeRange.today),
+        _rangeButton('7 Days', TimeRange.week),
+        _rangeButton('30 Days', TimeRange.month),
+        _rangeButton('All Time', TimeRange.all),
+      ],
+    );
+
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            theme.colorScheme.primary,
+            theme.colorScheme.secondary,
+          ],
+        ),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: theme.colorScheme.primary.withValues(alpha: 0.25),
+            blurRadius: 18,
+            offset: const Offset(0, 12),
           ),
-        ),
+        ],
       ),
+      child: isStacked
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'System Overview',
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    color: theme.colorScheme.onPrimary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Monitor product health, user growth, rentals, and support trends in a single glance.',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onPrimary.withValues(alpha: 0.8),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                controls,
+              ],
+            )
+          : Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'System Overview',
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          color: theme.colorScheme.onPrimary,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Monitor product health, user growth, rentals, and support trends in a single glance.',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onPrimary
+                              .withValues(alpha: 0.8),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 24),
+                controls,
+              ],
+            ),
     );
   }
 
-  Widget _header() {
-    return Row(
-      children: [
-        const Text(
-          "System Overview",
-          style: TextStyle(
-              fontSize: 26,
-              fontWeight: FontWeight.bold),
-        ),
-        const Spacer(),
-        _rangeButton("Today", TimeRange.today),
-        const SizedBox(width: 8),
-        _rangeButton("7 Days", TimeRange.week),
-        const SizedBox(width: 8),
-        _rangeButton("30 Days", TimeRange.month),
-        const SizedBox(width: 8),
-        _rangeButton("All Time", TimeRange.all),
-      ],
-    );
-  }
-
-  Widget _rangeButton(
-      String label, TimeRange range) {
+  Widget _rangeButton(String label, TimeRange range) {
     final isSelected = selectedRange == range;
+    final theme = Theme.of(context);
 
-    return OutlinedButton(
-      style: OutlinedButton.styleFrom(
-        backgroundColor: isSelected
-            ? const Color(0xFF781C2E)
-            : Colors.white,
-        foregroundColor:
-            isSelected ? Colors.white : Colors.black87,
+    return ChoiceChip(
+      selected: isSelected,
+      label: Text(label),
+      labelStyle: TextStyle(
+        color: isSelected
+            ? theme.colorScheme.onPrimary
+            : theme.colorScheme.onSurface,
+        fontWeight: FontWeight.w600,
       ),
-      onPressed: () {
-        setState(() {
-          selectedRange = range;
-        });
+      selectedColor: theme.colorScheme.primary,
+      backgroundColor: theme.colorScheme.surface,
+      side: BorderSide(
+        color:
+            isSelected ? theme.colorScheme.primary : theme.colorScheme.outline,
+      ),
+      onSelected: (_) {
+        setState(() => selectedRange = range);
       },
-      child: Text(label),
     );
   }
 
-  Widget _kpiRow() {
-    return Row(
-      children: [
-        Expanded(
-            child: _kpi("Users", "users",
-                Icons.people)),
-        const SizedBox(width: 16),
-        Expanded(
-            child: _kpi("Verified", "kyc",
-                Icons.verified_user, "status",
-                "approved")),
-        const SizedBox(width: 16),
-        Expanded(
-            child: _kpi("Rentals", "orders",
-                Icons.shopping_bag)),
-        const SizedBox(width: 16),
-        Expanded(
-            child: _kpi("Support",
-                "support_tickets",
-                Icons.support_agent)),
-      ],
+  Widget _buildKpiGrid() {
+    final cards = [
+      _kpi('Total Users', 'users', Icons.people),
+      _kpi('Verified KYC', 'kyc', Icons.verified_user, 'status', 'approved'),
+      _kpi('Rentals', 'orders', Icons.shopping_bag),
+      _kpi('Support Tickets', 'support_tickets', Icons.support_agent),
+    ];
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        int columns = 1;
+        if (width >= 1100) {
+          columns = 4;
+        } else if (width >= 720) {
+          columns = 2;
+        }
+        final spacing = 16.0;
+        final itemWidth =
+            columns == 1 ? width : (width - (columns - 1) * spacing) / columns;
+
+        return Wrap(
+          spacing: spacing,
+          runSpacing: spacing,
+          children: cards
+              .map((card) => SizedBox(width: itemWidth, child: card))
+              .toList(),
+        );
+      },
     );
   }
 
-  Widget _kpi(String title, String collection,
-      IconData icon,
+  Widget _kpi(String title, String collection, IconData icon,
       [String? field, String? equals]) {
     return StreamBuilder<int>(
-      stream:
-          _count(collection, field: field, equals: equals),
+      stream: _count(collection, field: field, equals: equals),
       builder: (context, snapshot) {
-        final value =
-            snapshot.hasData ? snapshot.data : 0;
+        final value = snapshot.hasData ? snapshot.data ?? 0 : 0;
+        final theme = Theme.of(context);
 
         return InkWell(
+          borderRadius: BorderRadius.circular(20),
           onTap: () => _openDetails(title),
           child: Container(
-            padding: const EdgeInsets.all(18),
+            padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius:
-                  BorderRadius.circular(16),
+              color: theme.cardColor,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: theme.colorScheme.primary.withValues(alpha: 0.08),
+              ),
               boxShadow: [
                 BoxShadow(
-                    color:
-                        Colors.black.withOpacity(0.05),
-                    blurRadius: 8)
+                  color: theme.colorScheme.shadow.withValues(alpha: 0.08),
+                  blurRadius: 14,
+                  offset: const Offset(0, 8),
+                ),
               ],
             ),
             child: Row(
               children: [
-                Icon(icon,
-                    color: const Color(0xFF781C2E)),
-                const SizedBox(width: 12),
-                Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
-                  children: [
-                    Text("$value",
-                        style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight:
-                                FontWeight.bold)),
-                    Text(title,
-                        style: const TextStyle(
-                            color: Colors.grey)),
-                  ],
-                )
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Icon(icon, color: theme.colorScheme.primary),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          color: theme.colorScheme.onSurface
+                              .withValues(alpha: 0.7),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        '$value',
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: theme.colorScheme.onSurface,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(Icons.chevron_right, color: theme.colorScheme.primary),
               ],
             ),
           ),
@@ -225,67 +332,59 @@ class _KycPieChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection("kyc")
-          .snapshots(),
+      stream: FirebaseFirestore.instance.collection('kyc').snapshots(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
           return _chartCard(
-              "KYC Status Distribution",
-              const Center(
-                  child:
-                      CircularProgressIndicator()));
+            'KYC Status Distribution',
+            const Center(child: CircularProgressIndicator()),
+          );
         }
 
         int approved = 0;
         int pending = 0;
         int rejected = 0;
 
-        for (var doc in snapshot.data!.docs) {
-          final status =
-              (doc["status"] ?? "")
-                  .toString()
-                  .toLowerCase();
-
-          if (status == "approved") approved++;
-          if (status == "pending") pending++;
-          if (status == "rejected") rejected++;
+        for (final doc in snapshot.data!.docs) {
+          final status = (doc['status'] ?? '').toString().toLowerCase();
+          if (status == 'approved') approved++;
+          if (status == 'pending') pending++;
+          if (status == 'rejected') rejected++;
         }
 
-        List<PieChartSectionData> sections = [];
-
-        if (approved > 0) {
-          sections.add(PieChartSectionData(
+        final sections = <PieChartSectionData>[
+          if (approved > 0)
+            PieChartSectionData(
               value: approved.toDouble(),
-              title: "Approved ($approved)",
-              color: Colors.green));
-        }
-
-        if (pending > 0) {
-          sections.add(PieChartSectionData(
+              title: 'Approved ($approved)',
+              color: Colors.green,
+            ),
+          if (pending > 0)
+            PieChartSectionData(
               value: pending.toDouble(),
-              title: "Pending ($pending)",
-              color: Colors.orange));
-        }
-
-        if (rejected > 0) {
-          sections.add(PieChartSectionData(
+              title: 'Pending ($pending)',
+              color: Colors.orange,
+            ),
+          if (rejected > 0)
+            PieChartSectionData(
               value: rejected.toDouble(),
-              title: "Rejected ($rejected)",
-              color: Colors.red));
-        }
+              title: 'Rejected ($rejected)',
+              color: Colors.red,
+            ),
+        ];
 
         return _chartCard(
-          "KYC Status Distribution",
+          'KYC Status Distribution',
           PieChart(
             PieChartData(
               centerSpaceRadius: 50,
               sections: sections.isEmpty
                   ? [
                       PieChartSectionData(
-                          value: 1,
-                          title: "No Data",
-                          color: Colors.grey)
+                        value: 1,
+                        title: 'No Data',
+                        color: Colors.grey,
+                      ),
                     ]
                   : sections,
             ),
@@ -297,21 +396,19 @@ class _KycPieChart extends StatelessWidget {
 }
 
 class _RentalsLineChart extends StatelessWidget {
-  final DateTime? startDate;
-
   const _RentalsLineChart({this.startDate});
+
+  final DateTime? startDate;
 
   @override
   Widget build(BuildContext context) {
-    Query query = FirebaseFirestore.instance
-        .collection("orders")
-        .orderBy("createdAt");
+    Query query =
+        FirebaseFirestore.instance.collection('orders').orderBy('createdAt');
 
     if (startDate != null) {
       query = query.where(
-        "createdAt",
-        isGreaterThanOrEqualTo:
-            Timestamp.fromDate(startDate!),
+        'createdAt',
+        isGreaterThanOrEqualTo: Timestamp.fromDate(startDate!),
       );
     }
 
@@ -320,69 +417,44 @@ class _RentalsLineChart extends StatelessWidget {
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
           return _chartCard(
-              "Rentals Growth",
-              const Center(
-                  child:
-                      CircularProgressIndicator()));
+            'Rentals Growth',
+            const Center(child: CircularProgressIndicator()),
+          );
         }
 
-        Map<DateTime, int> grouped = {};
-
-        for (var doc in snapshot.data!.docs) {
-          if (doc["createdAt"] == null) continue;
-
-          DateTime date =
-              (doc["createdAt"] as Timestamp)
-                  .toDate();
-
-          DateTime day = DateTime(
-              date.year, date.month, date.day);
-
-          grouped[day] =
-              (grouped[day] ?? 0) + 1;
+        final grouped = <DateTime, int>{};
+        for (final doc in snapshot.data!.docs) {
+          final ts = doc['createdAt'] as Timestamp?;
+          if (ts == null) continue;
+          final date = ts.toDate();
+          final day = DateTime(date.year, date.month, date.day);
+          grouped[day] = (grouped[day] ?? 0) + 1;
         }
 
-        final sorted =
-            grouped.keys.toList()..sort();
-
-        List<FlSpot> spots = [];
-
-        for (int i = 0;
-            i < sorted.length;
-            i++) {
-          spots.add(FlSpot(
-              i.toDouble(),
-              grouped[sorted[i]]!
-                  .toDouble()));
+        final sorted = grouped.keys.toList()..sort();
+        final spots = <FlSpot>[];
+        for (var i = 0; i < sorted.length; i++) {
+          spots.add(FlSpot(i.toDouble(), grouped[sorted[i]]!.toDouble()));
         }
 
         return _chartCard(
-          "Rentals Growth (Daily)",
+          'Rentals Growth (Daily)',
           LineChart(
             LineChartData(
-              borderData:
-                  FlBorderData(show: false),
-              gridData:
-                  FlGridData(show: true),
-              titlesData:
-                  FlTitlesData(show: false),
+              borderData: FlBorderData(show: false),
+              gridData: FlGridData(show: true),
+              titlesData: FlTitlesData(show: false),
               lineBarsData: [
                 LineChartBarData(
-                  spots: spots.isEmpty
-                      ? [const FlSpot(0, 0)]
-                      : spots,
+                  spots: spots.isEmpty ? [const FlSpot(0, 0)] : spots,
                   isCurved: true,
-                  color:
-                      const Color(0xFF781C2E),
+                  color: const Color(0xFF781C2E),
                   barWidth: 4,
-                  belowBarData:
-                      BarAreaData(
-                          show: true,
-                          color: const Color(
-                                  0xFF781C2E)
-                              .withOpacity(
-                                  0.15)),
-                )
+                  belowBarData: BarAreaData(
+                    show: true,
+                    color: const Color(0xFF781C2E).withValues(alpha: 0.15),
+                  ),
+                ),
               ],
             ),
           ),
@@ -392,33 +464,42 @@ class _RentalsLineChart extends StatelessWidget {
   }
 }
 
-Widget _chartCard(
-    String title, Widget child) {
-  return Container(
-    height: 320,
-    padding: const EdgeInsets.all(20),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius:
-          BorderRadius.circular(20),
-      boxShadow: [
-        BoxShadow(
-            color:
-                Colors.black.withOpacity(0.05),
-            blurRadius: 10)
-      ],
-    ),
-    child: Column(
-      crossAxisAlignment:
-          CrossAxisAlignment.start,
-      children: [
-        Text(title,
-            style: const TextStyle(
-                fontWeight:
-                    FontWeight.bold)),
-        const SizedBox(height: 20),
-        Expanded(child: child),
-      ],
-    ),
+Widget _chartCard(String title, Widget child) {
+  return Builder(
+    builder: (context) {
+      final theme = Theme.of(context);
+      return Container(
+        height: 320,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: theme.cardColor,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: theme.colorScheme.primary.withValues(alpha: 0.08),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: theme.colorScheme.shadow.withValues(alpha: 0.1),
+              blurRadius: 18,
+              offset: const Offset(0, 12),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: theme.colorScheme.onSurface,
+              ),
+            ),
+            const SizedBox(height: 20),
+            Expanded(child: child),
+          ],
+        ),
+      );
+    },
   );
 }

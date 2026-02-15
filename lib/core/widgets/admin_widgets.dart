@@ -18,19 +18,33 @@ class AdminCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final resolvedColor = color ?? scheme.surfaceContainerHighest;
+    final isDark = theme.brightness == Brightness.dark;
+
     return Container(
       margin: margin ?? const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color: color ?? Colors.white,
+        color: resolvedColor,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: scheme.outlineVariant.withValues(
+            alpha: isDark ? 0.35 : 0.12,
+          ),
+        ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF781C2E).withOpacity(0.04),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
+            color: scheme.shadow.withValues(
+              alpha: isDark ? 0.45 : 0.15,
+            ),
+            blurRadius: 18,
+            offset: const Offset(0, 6),
           ),
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: scheme.primary.withValues(
+              alpha: isDark ? 0.12 : 0.06,
+            ),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -56,6 +70,9 @@ class StatusChip extends StatelessWidget {
   final Color color;
   final IconData? icon;
   final bool isSmall;
+  final Color? backgroundColor;
+  final Color? textColor;
+  final Color? borderColor;
 
   const StatusChip({
     super.key,
@@ -63,25 +80,34 @@ class StatusChip extends StatelessWidget {
     required this.color,
     this.icon,
     this.isSmall = false,
+    this.backgroundColor,
+    this.textColor,
+    this.borderColor,
   });
 
   @override
   Widget build(BuildContext context) {
+    final Color resolvedTextColor = textColor ?? color;
+    final Color resolvedBackground =
+        backgroundColor ?? color.withValues(alpha: 0.1);
+    final Color resolvedBorderColor =
+        borderColor ?? color.withValues(alpha: 0.3);
+
     return Container(
       padding: EdgeInsets.symmetric(
         horizontal: isSmall ? 8 : 12,
         vertical: isSmall ? 4 : 8,
       ),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: resolvedBackground,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withOpacity(0.3), width: 1),
+        border: Border.all(color: resolvedBorderColor, width: 1),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           if (icon != null) ...[
-            Icon(icon, size: isSmall ? 12 : 14, color: color),
+            Icon(icon, size: isSmall ? 12 : 14, color: resolvedTextColor),
             SizedBox(width: isSmall ? 4 : 6),
           ],
           Text(
@@ -89,7 +115,7 @@ class StatusChip extends StatelessWidget {
             style: TextStyle(
               fontSize: isSmall ? 10 : 12,
               fontWeight: FontWeight.w600,
-              color: color,
+              color: resolvedTextColor,
             ),
           ),
         ],
@@ -128,7 +154,7 @@ class AdminButton extends StatelessWidget {
           backgroundColor: isOutlined ? Colors.transparent : buttonColor,
           foregroundColor: isOutlined ? buttonColor : Colors.white,
           elevation: isOutlined ? 0 : 4,
-          shadowColor: buttonColor.withOpacity(0.3),
+          shadowColor: buttonColor.withValues(alpha: 0.3),
           side: isOutlined ? BorderSide(color: buttonColor, width: 1.5) : null,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -173,6 +199,7 @@ class StatCard extends StatelessWidget {
   final Color color;
   final String? subtitle;
   final VoidCallback? onTap;
+  final Color? valueColor;
 
   const StatCard({
     super.key,
@@ -182,6 +209,7 @@ class StatCard extends StatelessWidget {
     required this.color,
     this.subtitle,
     this.onTap,
+    this.valueColor,
   });
 
   @override
@@ -201,12 +229,12 @@ class StatCard extends StatelessWidget {
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: [color, color.withOpacity(0.8)],
+                    colors: [color, color.withValues(alpha: 0.8)],
                   ),
                   borderRadius: BorderRadius.circular(8),
                   boxShadow: [
                     BoxShadow(
-                      color: color.withOpacity(0.3),
+                      color: color.withValues(alpha: 0.3),
                       blurRadius: 4,
                       offset: const Offset(0, 2),
                     ),
@@ -235,10 +263,10 @@ class StatCard extends StatelessWidget {
           const SizedBox(height: 2),
           Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
-              color: Color(0xFF1E293B),
+              color: valueColor ?? const Color(0xFF1E293B),
             ),
           ),
           if (subtitle != null) ...[
