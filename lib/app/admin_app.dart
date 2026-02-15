@@ -2,11 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/services/auth_service.dart';
+import '../core/theme/app_theme.dart';
+import '../core/theme/theme_provider.dart';
+
 import '../features/auth/presentation/login_screen.dart';
-import '../features/complaints/presentation/complaints_management_screen.dart';
-import '../features/kyc/presentation/admin_kyc_screen.dart';
 import '../features/navigation/presentation/admin_main_navigation.dart';
 import '../features/users/presentation/users_management_screen.dart';
+import '../features/kyc/presentation/admin_kyc_screen.dart';
+import '../features/orders/presentation/admin_orders_screen.dart';
+import '../features/support/presentation/admin_support_tickets_screen.dart';
 
 final authStateChangesProvider = StreamProvider<AdminAuthState>(
   (ref) => ref.read(authServiceProvider).adminAuthStateChanges(),
@@ -18,57 +22,49 @@ class AdminApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authStateChangesProvider);
+    final themeMode = ref.watch(themeModeProvider);
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Admin Console',
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF781C2E),
-        ),
-      ),
+
+      // ✅ Professional Theme Setup
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: themeMode,
+
+      // ✅ Named Routes
       routes: {
         '/users': (context) => const UsersManagementScreen(),
-        '/complaints': (context) => const ComplaintsManagementScreen(),
         '/kyc': (context) => const AdminKycScreen(),
+        '/orders': (context) => const AdminOrdersScreen(),
+        '/support-tickets': (context) =>
+            const AdminSupportTicketsScreen(),
       },
+
+      // ✅ Authentication Handling
       home: authState.when(
         data: (state) {
           switch (state.status) {
             case AdminAuthStatus.authenticated:
               return const AdminMainNavigation();
-            case AdminAuthStatus.checking:
-              return const _AuthLoadingScreen();
-            case AdminAuthStatus.unauthorized:
-              return LoginScreen(
-                initialError: state.message ?? 'You do not have admin access.',
-              );
-            case AdminAuthStatus.error:
-              return LoginScreen(
-                initialError: state.message ?? 'Unable to verify admin access.',
-              );
+
             case AdminAuthStatus.unauthenticated:
             default:
               return const LoginScreen();
           }
         },
-        loading: () => const _AuthLoadingScreen(),
+
+        loading: () => const Scaffold(
+          body: Center(
+            child: CircularProgressIndicator(),
+          ),
+        ),
+
         error: (e, _) => LoginScreen(
-          initialError: 'Unexpected error: $e',
+          initialError: 'Error: $e',
         ),
       ),
-    );
-  }
-}
-
-class _AuthLoadingScreen extends StatelessWidget {
-  const _AuthLoadingScreen();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(child: CircularProgressIndicator()),
     );
   }
 }

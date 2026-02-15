@@ -5,13 +5,18 @@ import '../../../core/services/auth_service.dart';
 import '../../users/presentation/users_list_screen.dart';
 import '../../users/presentation/admins_management_screen.dart';
 import '../../items/presentation/items_list_screen.dart';
-import '../../complaints/presentation/complaints_list_screen.dart';
+import '../../orders/presentation/admin_orders_screen.dart';
+import '../../subscriptions/presentation/admin_subscriptions_screen.dart';
+import '../../support/presentation/admin_support_faq_screen.dart';
+import '../../support/presentation/admin_support_tickets_screen.dart';
 
 class AdminHomeScreen extends ConsumerWidget {
   const AdminHomeScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final width = MediaQuery.of(context).size.width;
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Container(
@@ -26,10 +31,8 @@ class AdminHomeScreen extends ConsumerWidget {
           child: Column(
             children: [
               // ================= HEADER =================
-              Container(
-                padding: EdgeInsets.all(
-                  MediaQuery.of(context).size.width < 600 ? 16 : 24,
-                ),
+              Padding(
+                padding: EdgeInsets.all(width < 600 ? 16 : 24),
                 child: Row(
                   children: [
                     Container(
@@ -58,7 +61,7 @@ class AdminHomeScreen extends ConsumerWidget {
                             ),
                           ),
                           Text(
-                            'Orders & platform management',
+                            'Platform management & monitoring',
                             style: TextStyle(
                               color: Colors.white70,
                               fontSize: 14,
@@ -80,7 +83,7 @@ class AdminHomeScreen extends ConsumerWidget {
                 ),
               ),
 
-              // ================= DASHBOARD BODY =================
+              // ================= BODY =================
               Expanded(
                 child: Container(
                   width: double.infinity,
@@ -93,12 +96,16 @@ class AdminHomeScreen extends ConsumerWidget {
                   ),
                   child: GridView.count(
                     padding: const EdgeInsets.all(20),
-                    crossAxisCount:
-                        MediaQuery.of(context).size.width > 800 ? 3 : 2,
+                    crossAxisCount: width > 1000
+                        ? 4
+                        : width > 700
+                            ? 3
+                            : 2,
                     crossAxisSpacing: 20,
                     mainAxisSpacing: 20,
                     childAspectRatio: 1,
                     children: [
+
                       _card(
                         context,
                         'Users',
@@ -112,10 +119,11 @@ class AdminHomeScreen extends ConsumerWidget {
                           ),
                         ),
                       ),
+
                       _card(
                         context,
                         'Admins',
-                        'Admin roles',
+                        'Admin roles & access',
                         Icons.admin_panel_settings_rounded,
                         const Color(0xFF38BDF8),
                         () => Navigator.push(
@@ -125,6 +133,7 @@ class AdminHomeScreen extends ConsumerWidget {
                           ),
                         ),
                       ),
+
                       _card(
                         context,
                         'Items',
@@ -138,32 +147,64 @@ class AdminHomeScreen extends ConsumerWidget {
                           ),
                         ),
                       ),
+
                       _card(
                         context,
-                        'Complaints',
+                        'Orders',
+                        'View & manage orders',
+                        Icons.receipt_long_rounded,
+                        const Color(0xFFF59E0B),
+                        () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const AdminOrdersScreen(),
+                          ),
+                        ),
+                      ),
+
+                      _card(
+                        context,
+                        'Subscriptions',
+                        'Manage plans',
+                        Icons.subscriptions_rounded,
+                        const Color(0xFF6366F1),
+                        () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                const AdminSubscriptionsScreen(),
+                          ),
+                        ),
+                      ),
+
+                      _card(
+                        context,
+                        'FAQs',
+                        'Help center content',
+                        Icons.help_outline_rounded,
+                        const Color(0xFF8B5CF6),
+                        () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                const AdminSupportFaqScreen(),
+                          ),
+                        ),
+                      ),
+
+                      _card(
+                        context,
+                        'Support Tickets',
                         'Customer issues',
                         Icons.support_agent_rounded,
                         const Color(0xFFEF4444),
                         () => Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => const ComplaintsListScreen(),
+                            builder: (_) =>
+                                const AdminSupportTicketsScreen(),
                           ),
                         ),
-                      ),
-                      _card(
-                        context,
-                        'Analytics',
-                        'System overview',
-                        Icons.analytics_rounded,
-                        const Color(0xFF8B5CF6),
-                        () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Analytics coming soon'),
-                            ),
-                          );
-                        },
                       ),
                     ],
                   ),
@@ -176,7 +217,7 @@ class AdminHomeScreen extends ConsumerWidget {
     );
   }
 
-  // ================= CARD WIDGET =================
+  // ================= CARD =================
 
   Widget _card(
     BuildContext context,
@@ -194,9 +235,9 @@ class AdminHomeScreen extends ConsumerWidget {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: color.withOpacity(0.2),
-              blurRadius: 15,
-              offset: const Offset(0, 6),
+              color: color.withOpacity(0.15),
+              blurRadius: 18,
+              offset: const Offset(0, 8),
             ),
           ],
         ),
@@ -204,28 +245,29 @@ class AdminHomeScreen extends ConsumerWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              width: 56,
-              height: 56,
+              width: 60,
+              height: 60,
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [color, color.withOpacity(0.7)],
+                  colors: [color, color.withOpacity(0.75)],
                 ),
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(16),
               ),
-              child: Icon(icon, color: Colors.white, size: 28),
+              child: Icon(icon, color: Colors.white, size: 30),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
             Text(
               title,
               style: const TextStyle(
-                fontSize: 16,
+                fontSize: 17,
                 fontWeight: FontWeight.bold,
                 color: Color(0xFF1E293B),
               ),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 6),
             Text(
               subtitle,
+              textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 13,
                 color: Colors.grey[600],

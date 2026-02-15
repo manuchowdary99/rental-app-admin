@@ -10,8 +10,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  intl: ^0.19.0
 
+  intl: ^0.19.0
   cupertino_icons: ^1.0.8
   flutter_web_plugins:
     sdk: flutter
@@ -21,21 +21,24 @@ dependencies:
   firebase_auth: ^5.3.0
   cloud_firestore: ^5.4.0
   firebase_storage: ^12.4.10
+
+  # Charts
   fl_chart: ^0.66.0
 
-
   # State management
-  flutter_riverpod: ^3.0.0
+  flutter_riverpod: ^2.5.1
+
 
   # Image picker
   image_picker: ^1.0.4
+
+  # PDF & printing
   pdf: ^3.10.7
   printing: ^5.11.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-
   flutter_lints: ^5.0.0
 
 flutter:

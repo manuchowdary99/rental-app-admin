@@ -12,12 +12,10 @@ class AnalyticsDashboardScreen extends StatefulWidget {
       _AnalyticsDashboardScreenState();
 }
 
-class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
+class _AnalyticsDashboardScreenState
+    extends State<AnalyticsDashboardScreen> {
   TimeRange selectedRange = TimeRange.all;
 
-  // =============================
-  // DATE FILTER
-  // =============================
   DateTime? get _startDate {
     final now = DateTime.now();
     switch (selectedRange) {
@@ -32,20 +30,16 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
     }
   }
 
-  // =============================
-  // FIRESTORE COUNT STREAM
-  // =============================
-  Stream<int> _count(
-    String collection, {
-    String? field,
-    String? equals,
-  }) {
-    Query query = FirebaseFirestore.instance.collection(collection);
+  Stream<int> _count(String collection,
+      {String? field, String? equals}) {
+    Query query =
+        FirebaseFirestore.instance.collection(collection);
 
     if (_startDate != null) {
       query = query.where(
         'createdAt',
-        isGreaterThanOrEqualTo: Timestamp.fromDate(_startDate!),
+        isGreaterThanOrEqualTo:
+            Timestamp.fromDate(_startDate!),
       );
     }
 
@@ -53,12 +47,9 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
       query = query.where(field, isEqualTo: equals);
     }
 
-    return query.snapshots().map((s) => s.docs.length);
+    return query.snapshots().map((e) => e.docs.length);
   }
 
-  // =============================
-  // NAVIGATION
-  // =============================
   void _openDetails(String title) {
     switch (title) {
       case "Users":
@@ -68,10 +59,10 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
         Navigator.pushNamed(context, "/kyc");
         break;
       case "Rentals":
-        Navigator.pushNamed(context, "/rentals");
+        Navigator.pushNamed(context, "/orders");
         break;
-      case "Complaints":
-        Navigator.pushNamed(context, "/complaints");
+      case "Support":
+        Navigator.pushNamed(context, "/support-tickets");
         break;
     }
   }
@@ -88,9 +79,20 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
             children: [
               _header(),
               const SizedBox(height: 24),
-              _kpiBar(),
+              _kpiRow(),
               const SizedBox(height: 32),
-              _analyticsRow(),
+              Row(
+                crossAxisAlignment:
+                    CrossAxisAlignment.start,
+                children: [
+                  const Expanded(child: _KycPieChart()),
+                  const SizedBox(width: 24),
+                  Expanded(
+                    child: _RentalsLineChart(
+                        startDate: _startDate),
+                  ),
+                ],
+              ),
             ],
           ),
         ),
@@ -98,39 +100,14 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
     );
   }
 
-  // =============================
-  // HEADER
-  // =============================
   Widget _header() {
     return Row(
       children: [
-        Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: const Color(0xFF781C2E).withOpacity(0.1),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: const Icon(
-            Icons.analytics_rounded,
-            color: Color(0xFF781C2E),
-          ),
-        ),
-        const SizedBox(width: 12),
-        const Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              "System Overview",
-              style: TextStyle(
-                fontSize: 26,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            Text(
-              "Live operational and business metrics",
-              style: TextStyle(color: Colors.grey),
-            ),
-          ],
+        const Text(
+          "System Overview",
+          style: TextStyle(
+              fontSize: 26,
+              fontWeight: FontWeight.bold),
         ),
         const Spacer(),
         _rangeButton("Today", TimeRange.today),
@@ -144,22 +121,17 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
     );
   }
 
-  // =============================
-  // RANGE BUTTON
-  // =============================
-  Widget _rangeButton(String label, TimeRange range) {
+  Widget _rangeButton(
+      String label, TimeRange range) {
     final isSelected = selectedRange == range;
 
     return OutlinedButton(
       style: OutlinedButton.styleFrom(
-        backgroundColor: isSelected ? const Color(0xFF781C2E) : Colors.white,
-        foregroundColor: isSelected ? Colors.white : Colors.black87,
-        side: BorderSide(
-          color: isSelected ? const Color(0xFF781C2E) : Colors.grey.shade300,
-        ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
+        backgroundColor: isSelected
+            ? const Color(0xFF781C2E)
+            : Colors.white,
+        foregroundColor:
+            isSelected ? Colors.white : Colors.black87,
       ),
       onPressed: () {
         setState(() {
@@ -170,109 +142,74 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
     );
   }
 
-  // =============================
-  // KPI BAR
-  // =============================
-  Widget _kpiBar() {
+  Widget _kpiRow() {
     return Row(
       children: [
-        Expanded(child: _kpi("Users", "users", Icons.people)),
+        Expanded(
+            child: _kpi("Users", "users",
+                Icons.people)),
         const SizedBox(width: 16),
         Expanded(
-          child: _kpi(
-            "Verified",
-            "kyc",
-            Icons.verified_user,
-            "status",
-            "approved",
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(child: _kpi("Rentals", "orders", Icons.shopping_bag)),
+            child: _kpi("Verified", "kyc",
+                Icons.verified_user, "status",
+                "approved")),
         const SizedBox(width: 16),
         Expanded(
-          child: _kpi(
-            "Active",
-            "orders",
-            Icons.local_shipping,
-            "status",
-            "active",
-          ),
-        ),
+            child: _kpi("Rentals", "orders",
+                Icons.shopping_bag)),
         const SizedBox(width: 16),
-        Expanded(child: _kpi("Complaints", "complaints", Icons.support_agent)),
+        Expanded(
+            child: _kpi("Support",
+                "support_tickets",
+                Icons.support_agent)),
       ],
     );
   }
 
-  // =============================
-  // KPI CARD
-  // =============================
-  Widget _kpi(
-    String title,
-    String collection,
-    IconData icon, [
-    String? field,
-    String? equals,
-  ]) {
+  Widget _kpi(String title, String collection,
+      IconData icon,
+      [String? field, String? equals]) {
     return StreamBuilder<int>(
-      stream: _count(
-        collection,
-        field: field,
-        equals: equals,
-      ),
+      stream:
+          _count(collection, field: field, equals: equals),
       builder: (context, snapshot) {
-        final value = snapshot.hasData ? snapshot.data.toString() : "...";
+        final value =
+            snapshot.hasData ? snapshot.data : 0;
 
         return InkWell(
-          borderRadius: BorderRadius.circular(16),
           onTap: () => _openDetails(title),
           child: Container(
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius:
+                  BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.04),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
+                    color:
+                        Colors.black.withOpacity(0.05),
+                    blurRadius: 8)
               ],
             ),
             child: Row(
               children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF781C2E).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    icon,
-                    color: const Color(0xFF781C2E),
-                  ),
-                ),
-                const SizedBox(width: 14),
+                Icon(icon,
+                    color: const Color(0xFF781C2E)),
+                const SizedBox(width: 12),
                 Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment:
+                      CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      value,
-                      style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey,
-                      ),
-                    ),
+                    Text("$value",
+                        style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight:
+                                FontWeight.bold)),
+                    Text(title,
+                        style: const TextStyle(
+                            color: Colors.grey)),
                   ],
-                ),
+                )
               ],
             ),
           ),
@@ -280,90 +217,77 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
       },
     );
   }
-
-  // =============================
-  // ANALYTICS ROW
-  // =============================
-  Widget _analyticsRow() {
-    return const Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(child: _KycPieChart()),
-        SizedBox(width: 24),
-        Expanded(child: _RentalsLineChart()),
-      ],
-    );
-  }
 }
 
-// =============================
-// KYC PIE CHART
-// =============================
 class _KycPieChart extends StatelessWidget {
   const _KycPieChart();
 
-  Stream<Map<String, int>> _kycStats() {
-    return FirebaseFirestore.instance
-        .collection("kyc")
-        .snapshots()
-        .map((snapshot) {
-      int approved = 0;
-      int pending = 0;
-      int rejected = 0;
-
-      for (var doc in snapshot.docs) {
-        final status = doc["status"];
-        if (status == "approved") approved++;
-        if (status == "pending") pending++;
-        if (status == "rejected") rejected++;
-      }
-
-      return {
-        "approved": approved,
-        "pending": pending,
-        "rejected": rejected,
-      };
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<Map<String, int>>(
-      stream: _kycStats(),
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection("kyc")
+          .snapshots(),
       builder: (context, snapshot) {
-        final data =
-            snapshot.data ?? {"approved": 1, "pending": 1, "rejected": 1};
+        if (!snapshot.hasData) {
+          return _chartCard(
+              "KYC Status Distribution",
+              const Center(
+                  child:
+                      CircularProgressIndicator()));
+        }
 
-        return InkWell(
-          borderRadius: BorderRadius.circular(20),
-          onTap: () => Navigator.pushNamed(context, '/kyc'),
-          child: _card(
-            "KYC Status Distribution",
-            PieChart(
-              PieChartData(
-                centerSpaceRadius: 50,
-                sectionsSpace: 4,
-                sections: [
-                  PieChartSectionData(
-                    value: data["approved"]!.toDouble(),
-                    title: "Approved",
-                    color: Colors.green,
-                    radius: 60,
-                  ),
-                  PieChartSectionData(
-                    value: data["pending"]!.toDouble(),
-                    title: "Pending",
-                    color: Colors.orange,
-                    radius: 60,
-                  ),
-                  PieChartSectionData(
-                    value: data["rejected"]!.toDouble(),
-                    title: "Rejected",
-                    color: Colors.red,
-                    radius: 60,
-                  ),
-                ],
-              ),
+        int approved = 0;
+        int pending = 0;
+        int rejected = 0;
+
+        for (var doc in snapshot.data!.docs) {
+          final status =
+              (doc["status"] ?? "")
+                  .toString()
+                  .toLowerCase();
+
+          if (status == "approved") approved++;
+          if (status == "pending") pending++;
+          if (status == "rejected") rejected++;
+        }
+
+        List<PieChartSectionData> sections = [];
+
+        if (approved > 0) {
+          sections.add(PieChartSectionData(
+              value: approved.toDouble(),
+              title: "Approved ($approved)",
+              color: Colors.green));
+        }
+
+        if (pending > 0) {
+          sections.add(PieChartSectionData(
+              value: pending.toDouble(),
+              title: "Pending ($pending)",
+              color: Colors.orange));
+        }
+
+        if (rejected > 0) {
+          sections.add(PieChartSectionData(
+              value: rejected.toDouble(),
+              title: "Rejected ($rejected)",
+              color: Colors.red));
+        }
+
+        return _chartCard(
+          "KYC Status Distribution",
+          PieChart(
+            PieChartData(
+              centerSpaceRadius: 50,
+              sections: sections.isEmpty
+                  ? [
+                      PieChartSectionData(
+                          value: 1,
+                          title: "No Data",
+                          color: Colors.grey)
+                    ]
+                  : sections,
             ),
           ),
         );
@@ -372,75 +296,126 @@ class _KycPieChart extends StatelessWidget {
   }
 }
 
-// =============================
-// RENTALS LINE CHART
-// =============================
 class _RentalsLineChart extends StatelessWidget {
-  const _RentalsLineChart();
+  final DateTime? startDate;
+
+  const _RentalsLineChart({this.startDate});
 
   @override
   Widget build(BuildContext context) {
-    return _card(
-      "Rentals Growth",
-      LineChart(
-        LineChartData(
-          borderData: FlBorderData(show: false),
-          gridData: FlGridData(show: true),
-          titlesData: FlTitlesData(show: false),
-          lineBarsData: [
-            LineChartBarData(
-              spots: const [
-                FlSpot(0, 2),
-                FlSpot(1, 4),
-                FlSpot(2, 6),
-                FlSpot(3, 8),
-                FlSpot(4, 11),
-                FlSpot(5, 15),
+    Query query = FirebaseFirestore.instance
+        .collection("orders")
+        .orderBy("createdAt");
+
+    if (startDate != null) {
+      query = query.where(
+        "createdAt",
+        isGreaterThanOrEqualTo:
+            Timestamp.fromDate(startDate!),
+      );
+    }
+
+    return StreamBuilder<QuerySnapshot>(
+      stream: query.snapshots(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return _chartCard(
+              "Rentals Growth",
+              const Center(
+                  child:
+                      CircularProgressIndicator()));
+        }
+
+        Map<DateTime, int> grouped = {};
+
+        for (var doc in snapshot.data!.docs) {
+          if (doc["createdAt"] == null) continue;
+
+          DateTime date =
+              (doc["createdAt"] as Timestamp)
+                  .toDate();
+
+          DateTime day = DateTime(
+              date.year, date.month, date.day);
+
+          grouped[day] =
+              (grouped[day] ?? 0) + 1;
+        }
+
+        final sorted =
+            grouped.keys.toList()..sort();
+
+        List<FlSpot> spots = [];
+
+        for (int i = 0;
+            i < sorted.length;
+            i++) {
+          spots.add(FlSpot(
+              i.toDouble(),
+              grouped[sorted[i]]!
+                  .toDouble()));
+        }
+
+        return _chartCard(
+          "Rentals Growth (Daily)",
+          LineChart(
+            LineChartData(
+              borderData:
+                  FlBorderData(show: false),
+              gridData:
+                  FlGridData(show: true),
+              titlesData:
+                  FlTitlesData(show: false),
+              lineBarsData: [
+                LineChartBarData(
+                  spots: spots.isEmpty
+                      ? [const FlSpot(0, 0)]
+                      : spots,
+                  isCurved: true,
+                  color:
+                      const Color(0xFF781C2E),
+                  barWidth: 4,
+                  belowBarData:
+                      BarAreaData(
+                          show: true,
+                          color: const Color(
+                                  0xFF781C2E)
+                              .withOpacity(
+                                  0.15)),
+                )
               ],
-              isCurved: true,
-              color: const Color(0xFF781C2E),
-              barWidth: 4,
-              belowBarData: BarAreaData(
-                show: true,
-                color: const Color(0xFF781C2E).withOpacity(0.15),
-              ),
-              dotData: FlDotData(show: false),
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }
 
-// =============================
-// CARD WRAPPER
-// =============================
-Widget _card(String title, Widget child) {
+Widget _chartCard(
+    String title, Widget child) {
   return Container(
     height: 320,
     padding: const EdgeInsets.all(20),
     decoration: BoxDecoration(
       color: Colors.white,
-      borderRadius: BorderRadius.circular(20),
+      borderRadius:
+          BorderRadius.circular(20),
       boxShadow: [
         BoxShadow(
-          color: Colors.black.withOpacity(0.04),
-          blurRadius: 12,
-          offset: const Offset(0, 6),
-        ),
+            color:
+                Colors.black.withOpacity(0.05),
+            blurRadius: 10)
       ],
     ),
     child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment:
+          CrossAxisAlignment.start,
       children: [
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        Text(title,
+            style: const TextStyle(
+                fontWeight:
+                    FontWeight.bold)),
         const SizedBox(height: 20),
         Expanded(child: child),
       ],
