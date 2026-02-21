@@ -117,6 +117,8 @@ class _AdminKycScreenState extends State<AdminKycScreen> {
     final pending = requests.where((request) => request.isPending).length;
     final approved = requests.where((request) => request.isApproved).length;
     final rejected = requests.where((request) => request.isRejected).length;
+    final notSubmitted =
+        requests.where((request) => request.status == 'not_submitted').length;
 
     final cards = [
       _StatCard(label: 'Pending', value: pending, color: Colors.orange),
@@ -124,6 +126,12 @@ class _AdminKycScreenState extends State<AdminKycScreen> {
       _StatCard(label: 'Approved', value: approved, color: Colors.green),
       const SizedBox(width: 12),
       _StatCard(label: 'Rejected', value: rejected, color: Colors.red),
+      const SizedBox(width: 12),
+      _StatCard(
+        label: 'Not submitted',
+        value: notSubmitted,
+        color: const Color(0xFF3B82F6),
+      ),
     ];
 
     return Padding(
@@ -334,6 +342,8 @@ class _AdminKycScreenState extends State<AdminKycScreen> {
         return 'Approved';
       case KycStatusFilter.rejected:
         return 'Rejected';
+      case KycStatusFilter.not_submitted:
+        return 'Not submitted';
       case KycStatusFilter.all:
         return 'All';
     }

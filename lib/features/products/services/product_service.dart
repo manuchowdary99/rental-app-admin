@@ -76,6 +76,14 @@ class ProductService {
         .map(_mapProducts);
   }
 
+  Stream<List<Product>> allProductsStream() {
+    return _firestore
+        .collection(_collection)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map(_mapProducts);
+  }
+
   // Get user's own products for editing
   Stream<List<Product>> userProductsStream(String userId) {
     return _firestore

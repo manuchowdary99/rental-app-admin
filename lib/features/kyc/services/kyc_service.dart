@@ -3,7 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 import '../models/kyc_request.dart';
 
-enum KycStatusFilter { all, pending, approved, rejected }
+enum KycStatusFilter { all, pending, approved, rejected, not_submitted }
 
 class KycService {
   KycService({

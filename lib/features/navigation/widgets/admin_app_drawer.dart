@@ -320,9 +320,15 @@ class AdminAppDrawer extends ConsumerWidget {
       return;
     }
 
+    if (index == 0) {
+      Navigator.of(context).popUntil((route) => route.isFirst);
+      return;
+    }
+
     final Widget screen = _screenForIndex(index);
-    Navigator.of(context).pushReplacement(
+    Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => screen),
+      (route) => route.isFirst,
     );
   }
 

@@ -339,68 +339,271 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
 class _KycPieChart extends StatelessWidget {
   const _KycPieChart();
 
+  static const Color _approvedColor = Color(0xFF1FC77E);
+  static const Color _pendingColor = Color(0xFFFFC247);
+  static const Color _rejectedColor = Color(0xFFFF5C5C);
+  static const Color _notSubmittedColor = Color(0xFF3B82F6);
+
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance.collection('kyc').snapshots(),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) {
+    final theme = Theme.of(context);
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      stream: FirebaseFirestore.instance.collection('users').snapshots(),
+      builder: (context, usersSnapshot) {
+        if (!usersSnapshot.hasData) {
           return _chartCard(
             'KYC Status Distribution',
             const Center(child: CircularProgressIndicator()),
           );
         }
 
-        int approved = 0;
-        int pending = 0;
-        int rejected = 0;
+        return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+          stream: FirebaseFirestore.instance.collection('kyc').snapshots(),
+          builder: (context, kycSnapshot) {
+            final kycStatusMap = <String, String>{};
+            if (kycSnapshot.hasData) {
+              for (final doc in kycSnapshot.data!.docs) {
+                final data = doc.data();
+                final userId = (data['userId'] ?? doc.id).toString();
+                kycStatusMap[userId] = data['status']?.toString() ?? '';
+              }
+            }
 
-        for (final doc in snapshot.data!.docs) {
-          final status = (doc['status'] ?? '').toString().toLowerCase();
-          if (status == 'approved') approved++;
-          if (status == 'pending') pending++;
-          if (status == 'rejected') rejected++;
-        }
+            int approved = 0;
+            int pending = 0;
+            int rejected = 0;
+            int notSubmitted = 0;
 
-        final sections = <PieChartSectionData>[
-          if (approved > 0)
-            PieChartSectionData(
-              value: approved.toDouble(),
-              title: 'Approved ($approved)',
-              color: Colors.green,
-            ),
-          if (pending > 0)
-            PieChartSectionData(
-              value: pending.toDouble(),
-              title: 'Pending ($pending)',
-              color: Colors.orange,
-            ),
-          if (rejected > 0)
-            PieChartSectionData(
-              value: rejected.toDouble(),
-              title: 'Rejected ($rejected)',
-              color: Colors.red,
-            ),
-        ];
+            for (final doc in usersSnapshot.data!.docs) {
+              final data = doc.data();
+              String status = _normalizeStatus(data['kycStatus']);
+              if (status == 'not_submitted') {
+                final fallback = _normalizeStatus(kycStatusMap[doc.id]);
+                if (fallback != 'not_submitted') {
+                  status = fallback;
+                }
+              }
 
-        return _chartCard(
-          'KYC Status Distribution',
-          PieChart(
-            PieChartData(
-              centerSpaceRadius: 50,
-              sections: sections.isEmpty
-                  ? [
-                      PieChartSectionData(
-                        value: 1,
-                        title: 'No Data',
-                        color: Colors.grey,
-                      ),
-                    ]
-                  : sections,
-            ),
-          ),
+              switch (status) {
+                case 'approved':
+                  approved++;
+                  break;
+                case 'pending':
+                  pending++;
+                  break;
+                case 'rejected':
+                  rejected++;
+                  break;
+                default:
+                  notSubmitted++;
+              }
+            }
+
+            final total = usersSnapshot.data!.docs.length;
+            final approvedPercent = total == 0 ? 0 : (approved / total);
+
+            final sections = total == 0
+                ? [
+                    PieChartSectionData(
+                      value: 1,
+                      color: theme.colorScheme.outlineVariant,
+                      showTitle: false,
+                      radius: 70,
+                    ),
+                  ]
+                : [
+                    _buildSection(approved, _approvedColor),
+                    _buildSection(pending, _pendingColor),
+                    _buildSection(rejected, _rejectedColor),
+                    _buildSection(notSubmitted, _notSubmittedColor),
+                  ].where((section) => section.value > 0).toList();
+
+            return Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    theme.colorScheme.surface,
+                    theme.colorScheme.surfaceContainerHighest,
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(32),
+                boxShadow: [
+                  BoxShadow(
+                    color: theme.colorScheme.shadow.withValues(alpha: 0.12),
+                    blurRadius: 24,
+                    offset: const Offset(0, 14),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'KYC Status Distribution',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: theme.colorScheme.onSurface,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  AspectRatio(
+                    aspectRatio: 1,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        PieChart(
+                          PieChartData(
+                            centerSpaceRadius: 72,
+                            sectionsSpace: 4,
+                            startDegreeOffset: -90,
+                            sections: sections.isEmpty
+                                ? [
+                                    PieChartSectionData(
+                                      value: 1,
+                                      color: theme.colorScheme.outlineVariant,
+                                      showTitle: false,
+                                    ),
+                                  ]
+                                : sections,
+                            pieTouchData: PieTouchData(enabled: false),
+                          ),
+                        ),
+                        Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              '${(approvedPercent * 100).round()}%',
+                              style: theme.textTheme.displaySmall?.copyWith(
+                                fontWeight: FontWeight.w700,
+                                color: theme.colorScheme.onSurface,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              total == 0 ? 'No data' : 'Approved',
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                color: theme.colorScheme.onSurface
+                                    .withValues(alpha: 0.7),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              total == 0
+                                  ? '0 users'
+                                  : '$approved user${approved == 1 ? '' : 's'}',
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: theme.colorScheme.onSurface
+                                    .withValues(alpha: 0.6),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  _LegendRow(
+                    color: _approvedColor,
+                    label: 'Approved',
+                    value: approved,
+                  ),
+                  const SizedBox(height: 12),
+                  _LegendRow(
+                    color: _pendingColor,
+                    label: 'Pending',
+                    value: pending,
+                  ),
+                  const SizedBox(height: 12),
+                  _LegendRow(
+                    color: _rejectedColor,
+                    label: 'Rejected',
+                    value: rejected,
+                  ),
+                  const SizedBox(height: 12),
+                  _LegendRow(
+                    color: _notSubmittedColor,
+                    label: 'Not submitted',
+                    value: notSubmitted,
+                  ),
+                ],
+              ),
+            );
+          },
         );
       },
+    );
+  }
+
+  static String _normalizeStatus(dynamic raw) {
+    final value = raw?.toString().trim().toLowerCase() ?? '';
+    if (value.isEmpty) return 'not_submitted';
+    if (value == 'approved' || value == 'verified') return 'approved';
+    if (value == 'rejected' || value == 'declined') return 'rejected';
+    if (value == 'pending' || value == 'submitted' || value == 'in_review') {
+      return 'pending';
+    }
+    return 'not_submitted';
+  }
+
+  PieChartSectionData _buildSection(int count, Color color) {
+    return PieChartSectionData(
+      value: count.toDouble(),
+      color: color,
+      radius: 80,
+      showTitle: false,
+      borderSide: BorderSide(
+        color: Colors.white.withValues(alpha: 0.9),
+        width: 3,
+      ),
+    );
+  }
+}
+
+class _LegendRow extends StatelessWidget {
+  const _LegendRow({
+    required this.color,
+    required this.label,
+    required this.value,
+  });
+
+  final Color color;
+  final String label;
+  final int value;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Row(
+      children: [
+        Container(
+          width: 14,
+          height: 14,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(4),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            label,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurface,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        Text(
+          '$value',
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: theme.colorScheme.onSurface,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ],
     );
   }
 }
