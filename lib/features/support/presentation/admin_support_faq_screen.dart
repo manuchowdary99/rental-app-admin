@@ -24,14 +24,30 @@ class AdminSupportFaqScreen extends StatelessWidget {
         child: StreamBuilder<QuerySnapshot>(
           stream: FirebaseFirestore.instance
               .collection('support_faqs')
-              .orderBy('displayOrder')
-              .snapshots(),
+              .snapshots(), // ✅ removed orderBy (fix loader)
           builder: (context, snapshot) {
-            if (!snapshot.hasData) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
             }
 
-            final docs = snapshot.data!.docs;
+            if (snapshot.hasError) {
+              return Center(
+                child: Text("Error: ${snapshot.error}"),
+              );
+            }
+
+            if (!snapshot.hasData) {
+              return const SizedBox();
+            }
+
+            final docs = snapshot.data!.docs.toList();
+
+            // ✅ local sort (same behaviour as orderBy)
+            docs.sort((a, b) {
+              final aOrder = (a['displayOrder'] ?? 0) as int;
+              final bOrder = (b['displayOrder'] ?? 0) as int;
+              return aOrder.compareTo(bOrder);
+            });
 
             if (docs.isEmpty) {
               return const Center(
@@ -61,13 +77,13 @@ class AdminSupportFaqScreen extends StatelessWidget {
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // LEFT SIDE CONTENT
                           Expanded(
                             child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                              crossAxisAlignment:
+                                  CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  data['question'],
+                                  data['question'] ?? "",
                                   style: const TextStyle(
                                     fontSize: 17,
                                     fontWeight: FontWeight.w600,
@@ -76,25 +92,29 @@ class AdminSupportFaqScreen extends StatelessWidget {
                                 const SizedBox(height: 6),
                                 if (data['category'] != null)
                                   Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 10, vertical: 4),
+                                    padding:
+                                        const EdgeInsets.symmetric(
+                                            horizontal: 10,
+                                            vertical: 4),
                                     decoration: BoxDecoration(
                                       color: const Color(0xFF781C2E)
                                           .withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(20),
+                                      borderRadius:
+                                          BorderRadius.circular(20),
                                     ),
                                     child: Text(
                                       data['category'],
                                       style: const TextStyle(
                                         fontSize: 12,
                                         color: Color(0xFF781C2E),
-                                        fontWeight: FontWeight.w500,
+                                        fontWeight:
+                                            FontWeight.w500,
                                       ),
                                     ),
                                   ),
                                 const SizedBox(height: 10),
                                 Text(
-                                  "Display Order: ${data['displayOrder']}",
+                                  "Display Order: ${data['displayOrder'] ?? 0}",
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: Colors.grey[600],
@@ -103,16 +123,15 @@ class AdminSupportFaqScreen extends StatelessWidget {
                               ],
                             ),
                           ),
-
-                          // RIGHT SIDE ACTIONS
                           Column(
                             children: [
                               IconButton(
-                                icon: const Icon(
-                                  Icons.edit_rounded,
-                                ),
-                                color: const Color(0xFF781C2E),
-                                onPressed: () => _showEditDialog(context, data),
+                                icon:
+                                    const Icon(Icons.edit_rounded),
+                                color:
+                                    const Color(0xFF781C2E),
+                                onPressed: () =>
+                                    _showEditDialog(context, data),
                               ),
                               IconButton(
                                 icon: const Icon(
@@ -141,15 +160,14 @@ class AdminSupportFaqScreen extends StatelessWidget {
     );
   }
 
-  /* =============================
-     ADD FAQ DIALOG
-  ============================= */
+  // ================= ADD =================
 
   void _showAddDialog(BuildContext context) {
     final questionController = TextEditingController();
     final answerController = TextEditingController();
     final orderController = TextEditingController();
-    final categoryController = TextEditingController(text: "General");
+    final categoryController =
+        TextEditingController(text: "General");
 
     showDialog(
       context: context,
@@ -162,23 +180,22 @@ class AdminSupportFaqScreen extends StatelessWidget {
           child: Column(
             children: [
               TextField(
-                controller: questionController,
-                decoration: const InputDecoration(
-                  labelText: "Question",
-                ),
-              ),
+                  controller: questionController,
+                  decoration:
+                      const InputDecoration(labelText: "Question")),
               TextField(
-                controller: answerController,
-                decoration: const InputDecoration(labelText: "Answer"),
-              ),
+                  controller: answerController,
+                  decoration:
+                      const InputDecoration(labelText: "Answer")),
               TextField(
-                controller: categoryController,
-                decoration: const InputDecoration(labelText: "Category"),
-              ),
+                  controller: categoryController,
+                  decoration:
+                      const InputDecoration(labelText: "Category")),
               TextField(
                 controller: orderController,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: "Display Order"),
+                decoration:
+                    const InputDecoration(labelText: "Display Order"),
               ),
             ],
           ),
@@ -186,11 +203,14 @@ class AdminSupportFaqScreen extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () {
-              FirebaseFirestore.instance.collection('support_faqs').add({
+              FirebaseFirestore.instance
+                  .collection('support_faqs')
+                  .add({
                 "question": questionController.text,
                 "answer": answerController.text,
                 "category": categoryController.text,
-                "displayOrder": int.parse(orderController.text),
+                "displayOrder":
+                    int.tryParse(orderController.text) ?? 0,
                 "updatedAt": FieldValue.serverTimestamp(),
               });
               Navigator.pop(context);
@@ -202,23 +222,23 @@ class AdminSupportFaqScreen extends StatelessWidget {
     );
   }
 
-  /* =============================
-     EDIT FAQ DIALOG
-  ============================= */
+  // ================= EDIT =================
 
   void _showEditDialog(BuildContext context, QueryDocumentSnapshot doc) {
-    final questionController = TextEditingController(text: doc['question']);
-    final answerController = TextEditingController(text: doc['answer']);
-    final orderController =
-        TextEditingController(text: doc['displayOrder'].toString());
-    final categoryController = TextEditingController(text: doc['category']);
+    final questionController =
+        TextEditingController(text: doc['question']);
+    final answerController =
+        TextEditingController(text: doc['answer']);
+    final orderController = TextEditingController(
+        text: (doc['displayOrder'] ?? 0).toString());
+    final categoryController =
+        TextEditingController(text: doc['category']);
 
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text("Edit FAQ"),
         content: SingleChildScrollView(
           child: Column(
@@ -243,7 +263,8 @@ class AdminSupportFaqScreen extends StatelessWidget {
                 "question": questionController.text,
                 "answer": answerController.text,
                 "category": categoryController.text,
-                "displayOrder": int.parse(orderController.text),
+                "displayOrder":
+                    int.tryParse(orderController.text) ?? 0,
                 "updatedAt": FieldValue.serverTimestamp(),
               });
               Navigator.pop(context);

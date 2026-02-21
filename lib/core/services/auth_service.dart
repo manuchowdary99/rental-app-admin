@@ -36,9 +36,7 @@ class AdminAuthState {
 
 class AdminAccessException implements Exception {
   final String message;
-
   AdminAccessException(this.message);
-
   @override
   String toString() => message;
 }
@@ -63,19 +61,18 @@ class AuthService {
         yield AdminAuthState.authenticated(user);
       } on AdminAccessException catch (e) {
         yield AdminAuthState.unauthorized(e.message);
-        await _auth.signOut();
+        await _safeSignOut();
       } catch (_) {
         yield const AdminAuthState.error(
           'Unable to verify admin access. Please try again.',
         );
-        await _auth.signOut();
+        await _safeSignOut();
       }
     }
   }
 
-  // ==========================
-  // ADMIN EMAIL LOGIN
-  // ==========================
+  // ================= ADMIN LOGIN =================
+
   Future<User?> signInAsAdmin({
     required String email,
     required String password,
@@ -92,7 +89,7 @@ class AuthService {
       await _ensureAdminAccess(user);
       return user;
     } on AdminAccessException {
-      await _auth.signOut();
+      await _safeSignOut();
       rethrow;
     }
   }
@@ -101,10 +98,8 @@ class AuthService {
     await _auth.sendPasswordResetEmail(email: email);
   }
 
-  // ==========================
-  // GOOGLE REDIRECT HANDLER
-  // ==========================
-  /// Call once on app start to finish a pending Google redirect sign‑in.
+  // ================= GOOGLE =================
+
   Future<User?> handleGoogleRedirectIfNeeded() async {
     final result = await _auth.getRedirectResult();
     final user = result.user;
@@ -114,15 +109,11 @@ class AuthService {
       await _ensureAdminAccess(user);
       return user;
     } on AdminAccessException {
-      await _auth.signOut();
+      await _safeSignOut();
       rethrow;
     }
   }
 
-  // ==========================
-  // GOOGLE ADMIN LOGIN
-  // ==========================
-  /// Google sign‑in using redirect (avoids popup handler bug on some projects).
   Future<void> signInWithGoogleAsAdmin() async {
     final googleProvider = GoogleAuthProvider()
       ..addScope('email')
@@ -131,60 +122,47 @@ class AuthService {
     await _auth.signInWithRedirect(googleProvider);
   }
 
-  // ==========================
-  // ADMIN ACCESS CHECK
-  // ==========================
+  // ================= ADMIN ACCESS =================
+
   Future<void> _ensureAdminAccess(User user) async {
     final docRef = _db.collection('users').doc(user.uid);
     final doc = await docRef.get();
 
-    // If admin user doc does not exist, deny access
     if (!doc.exists) {
       throw AdminAccessException('Admin profile not found');
     }
 
     final data = doc.data() ?? {};
 
-    final role = (data['role'] as String? ?? 'normal').toLowerCase().trim();
-    final status = (data['status'] as String? ?? 'active').toLowerCase().trim();
+    final role = (data['role'] ?? 'normal').toString().toLowerCase();
+    final status = (data['status'] ?? 'active').toString().toLowerCase();
     final isAdminFlag = data['isAdmin'] == true;
 
-    // Blocked users can't log in
     if (status == 'blocked') {
-      throw AdminAccessException('Your account has been blocked by admin');
+      throw AdminAccessException('Your account has been blocked');
     }
 
-    // Only admins can enter admin panel
     final hasAdminRole = role == 'admin' || role == 'super_admin';
     if (!isAdminFlag && !hasAdminRole) {
       throw AdminAccessException('No admin access');
     }
 
-    // Update last login time
     try {
       await docRef.set(
-        {
-          'lastLoginAt': Timestamp.now(),
-        },
+        {'lastLoginAt': Timestamp.now()},
         SetOptions(merge: true),
       );
-    } catch (e, stack) {
-      debugPrint('Failed to update lastLoginAt for admin: $e');
-      debugPrint(stack.toString());
-    }
+    } catch (_) {}
   }
 
-  // ==========================
-  // NORMAL USER LOGIN
-  // ==========================
+  // ================= USER LOGIN =================
+
   Future<User?> signInUser({
     required String email,
     required String password,
   }) async {
-    final cred = await _auth.signInWithEmailAndPassword(
-      email: email,
-      password: password,
-    );
+    final cred =
+        await _auth.signInWithEmailAndPassword(email: email, password: password);
 
     final user = cred.user;
     if (user == null) return null;
@@ -195,30 +173,20 @@ class AuthService {
     return user;
   }
 
-  // ==========================
-  // USER BLOCK CHECK
-  // ==========================
   Future<void> _checkUserBlocked(User user) async {
-    final docRef = _db.collection("users").doc(user.uid);
-    final doc = await docRef.get();
-
+    final doc = await _db.collection("users").doc(user.uid).get();
     if (!doc.exists) return;
 
-    final data = doc.data()!;
-    if (data["status"] == "blocked") {
-      await _auth.signOut();
-      throw Exception("Your account has been blocked by admin");
+    if (doc.data()?["status"] == "blocked") {
+      await _safeSignOut();
+      throw Exception("Account blocked");
     }
 
-    // Update last login
-    await docRef.update({
+    await _db.collection("users").doc(user.uid).update({
       "lastLoginAt": Timestamp.now(),
     });
   }
 
-  // ==========================
-  // CREATE USER DOC
-  // ==========================
   Future<void> _createUserIfNotExists(User user) async {
     final docRef = _db.collection("users").doc(user.uid);
     final snapshot = await docRef.get();
@@ -233,36 +201,21 @@ class AuthService {
         "kycStatus": "not_submitted",
         "createdAt": Timestamp.now(),
         "lastLoginAt": Timestamp.now(),
-        "itemsListed": 0,
-        "rentalsCount": 0,
-        "rating": 0,
-        "photoURL": null,
       });
     }
   }
 
-  // ==========================
-  // CHANGE PASSWORD
-  // ==========================
+  // ================= CHANGE PASSWORD (FIX ERROR) =================
+
   Future<void> changePassword({
     required String currentPassword,
     required String newPassword,
   }) async {
     final user = _auth.currentUser;
-    if (user == null) {
-      throw FirebaseAuthException(
-        code: 'no-user',
-        message: 'No authenticated admin user found.',
-      );
-    }
+    if (user == null) throw Exception("No user");
 
     final email = user.email;
-    if (email == null) {
-      throw FirebaseAuthException(
-        code: 'no-email',
-        message: 'Admin account does not have an email address.',
-      );
-    }
+    if (email == null) throw Exception("No email");
 
     final credential = EmailAuthProvider.credential(
       email: email,
@@ -274,48 +227,25 @@ class AuthService {
 
     try {
       await _db.collection('users').doc(user.uid).set(
-        {
-          'passwordLastChangedAt': Timestamp.now(),
-        },
+        {'passwordLastChangedAt': Timestamp.now()},
         SetOptions(merge: true),
       );
-    } catch (e, stack) {
-      debugPrint('Failed to update password metadata: $e');
-      debugPrint(stack.toString());
-    }
+    } catch (_) {}
   }
 
-  // ==========================
-  // SIGN OUT
-  // ==========================
-  Future<void> signOut() => _auth.signOut();
+  // ================= SIGN OUT (FIX FREEZE) =================
 
-  // ==========================
-  // CREATE TEST ADMIN
-  // ==========================
-  Future<void> createTestAdmin() async {
+  Future<void> signOut() async {
+    await _safeSignOut();
+  }
+
+  Future<void> _safeSignOut() async {
     try {
-      final cred = await _auth.createUserWithEmailAndPassword(
-        email: 'admin@test.com',
-        password: 'admin123',
-      );
-
-      if (cred.user != null) {
-        await _db.collection('users').doc(cred.user!.uid).set({
-          'uid': cred.user!.uid,
-          'email': 'admin@test.com',
-          'displayName': 'Test Admin',
-          'role': 'admin',
-          'status': 'active',
-          'kycStatus': 'approved',
-          'createdAt': Timestamp.now(),
-          'lastLoginAt': Timestamp.now(),
-        });
-
-        debugPrint('Test admin user created successfully!');
+      if (_auth.currentUser != null) {
+        await _auth.signOut();
       }
     } catch (e) {
-      debugPrint('Admin user might already exist or error: $e');
+      debugPrint("SignOut error: $e");
     }
   }
 }

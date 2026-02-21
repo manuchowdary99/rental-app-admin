@@ -33,14 +33,28 @@ class AdminSupportTicketsScreen extends StatelessWidget {
         child: StreamBuilder<QuerySnapshot>(
           stream: FirebaseFirestore.instance
               .collection('support_tickets')
-              .orderBy('createdAt', descending: true)
-              .snapshots(),
+              .snapshots(), // ✅ removed orderBy
           builder: (context, snapshot) {
-            if (!snapshot.hasData) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
             }
 
-            final tickets = snapshot.data!.docs;
+            if (snapshot.hasError) {
+              return Center(child: Text("Error: ${snapshot.error}"));
+            }
+
+            if (!snapshot.hasData) return const SizedBox();
+
+            final tickets = snapshot.data!.docs.toList();
+
+            // ✅ local sort (same behaviour)
+            tickets.sort((a, b) {
+              final aDate =
+                  (a['createdAt'] as Timestamp?)?.toDate() ?? DateTime(0);
+              final bDate =
+                  (b['createdAt'] as Timestamp?)?.toDate() ?? DateTime(0);
+              return bDate.compareTo(aDate);
+            });
 
             if (tickets.isEmpty) {
               return Center(
@@ -76,14 +90,17 @@ class AdminSupportTicketsScreen extends StatelessWidget {
                     subtitle: Padding(
                       padding: const EdgeInsets.only(top: 8),
                       child: Text(
-                        "Status: ${ticket['status']}  |  Priority: ${ticket['priority']}",
+                        "Status: ${ticket['status'] ?? ''}  |  Priority: ${ticket['priority'] ?? ''}",
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: scheme.onSurfaceVariant,
                         ),
                       ),
                     ),
-                    trailing: Icon(Icons.arrow_forward_ios,
-                        size: 16, color: scheme.onSurfaceVariant),
+                    trailing: Icon(
+                      Icons.arrow_forward_ios,
+                      size: 16,
+                      color: scheme.onSurfaceVariant,
+                    ),
                     onTap: () => _openTicket(context, ticket),
                   ),
                 );
@@ -113,10 +130,8 @@ class AdminSupportTicketsScreen extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                ticket['message'] ?? '',
-                style: const TextStyle(fontSize: 14),
-              ),
+              Text(ticket['message'] ?? '',
+                  style: const TextStyle(fontSize: 14)),
               const SizedBox(height: 20),
               TextField(
                 controller: responseController,
