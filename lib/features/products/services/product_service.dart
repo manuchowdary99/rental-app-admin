@@ -11,14 +11,14 @@ class ProductService {
     required double price,
     required String categoryId,
     required String categoryName,
-    required String userId, // Add user ownership
-    required String userName, // Add user name for easy reference
+    required String userId,
+    required String userName,
   }) async {
     bool flagged = false;
     int riskScore = 0;
-    String status = 'pending'; // Always start as pending
+    String status = 'pending';
 
-    // AUTO FLAG RULES for higher risk scoring
+    // 🔥 AUTO FLAG RULES
     if (price > 100000) {
       flagged = true;
       riskScore += 50;
@@ -36,7 +36,7 @@ class ProductService {
       price: price,
       categoryId: categoryId,
       categoryName: categoryName,
-      isActive: false, // Not active until approved
+      isActive: false,
       isFlagged: flagged,
       riskScore: riskScore,
       status: status,
@@ -45,7 +45,7 @@ class ProductService {
 
     await _firestore.collection(_collection).add({
       ...product.toFirestore(),
-      'userId': userId, // Add ownership
+      'userId': userId,
       'userName': userName,
       'updatedAt': FieldValue.serverTimestamp(),
     });
@@ -84,7 +84,6 @@ class ProductService {
         .map(_mapProducts);
   }
 
-  // Get user's own products for editing
   Stream<List<Product>> userProductsStream(String userId) {
     return _firestore
         .collection(_collection)
@@ -94,15 +93,44 @@ class ProductService {
         .map(_mapProducts);
   }
 
-  // ---------------- ACTIONS ----------------
-  Future<void> approveProduct(String productId) async {
+  // ---------------- ADMIN ACTIONS ----------------
+
+  /// Generic status update (used from products_screen)
+  Future<void> updateStatus(String productId, String status) async {
+    Map<String, dynamic> updateData = {
+      'status': status,
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
+
+    if (status == 'approved') {
+      updateData['isActive'] = true;
+      updateData['isFlagged'] = false;
+      updateData['riskScore'] = 0;
+      updateData['approvedAt'] = FieldValue.serverTimestamp();
+    }
+
+    if (status == 'pending') {
+      updateData['isActive'] = false;
+    }
+
+    if (status == 'rejected') {
+      updateData['isActive'] = false;
+      updateData['rejectedAt'] = FieldValue.serverTimestamp();
+    }
+
+    await _firestore.collection(_collection).doc(productId).update(updateData);
+  }
+
+  /// Toggle Flag anytime (admin can flag/unflag later)
+  Future<void> toggleFlag(String productId, bool currentFlag) async {
     await _firestore.collection(_collection).doc(productId).update({
-      'status': 'approved',
-      'isActive': true, // Make active when approved
-      'isFlagged': false,
-      'riskScore': 0,
-      'approvedAt': FieldValue.serverTimestamp(),
+      'isFlagged': !currentFlag,
+      'updatedAt': FieldValue.serverTimestamp(),
     });
+  }
+
+  Future<void> approveProduct(String productId) async {
+    await updateStatus(productId, 'approved');
   }
 
   Future<void> rejectProduct(String productId, {String? reason}) async {
@@ -111,12 +139,14 @@ class ProductService {
       'isActive': false,
       'rejectedAt': FieldValue.serverTimestamp(),
       'rejectionReason': reason,
+      'updatedAt': FieldValue.serverTimestamp(),
     });
   }
 
   Future<void> toggleProduct(String productId, bool isActive) async {
     await _firestore.collection(_collection).doc(productId).update({
       'isActive': !isActive,
+      'updatedAt': FieldValue.serverTimestamp(),
     });
   }
 
@@ -126,6 +156,8 @@ class ProductService {
 
   // ---------------- MAPPER ----------------
   List<Product> _mapProducts(QuerySnapshot snapshot) {
-    return snapshot.docs.map((doc) => Product.fromFirestore(doc)).toList();
+    return snapshot.docs
+        .map((doc) => Product.fromFirestore(doc))
+        .toList();
   }
 }

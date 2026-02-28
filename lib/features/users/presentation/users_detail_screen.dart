@@ -30,25 +30,47 @@ class UserDetailScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Basic info
+
+            /// 🔹 BASIC INFO
             StreamBuilder<DocumentSnapshot>(
               stream: usersRef.doc(userId).snapshots(),
               builder: (context, snapshot) {
-                if (!snapshot.hasData) {
-                  return const Center(child: CircularProgressIndicator());
+
+                // ✅ Error handling added
+                if (snapshot.hasError) {
+                  return const Center(
+                      child: Text("Error loading user data"));
                 }
+
+                // ✅ Proper loading state
+                if (snapshot.connectionState ==
+                    ConnectionState.waiting) {
+                  return const Center(
+                      child: CircularProgressIndicator());
+                }
+
+                // ✅ Handle missing document
+                if (!snapshot.hasData || !snapshot.data!.exists) {
+                  return const Center(
+                      child: Text("User not found"));
+                }
+
                 final data =
                     snapshot.data!.data() as Map<String, dynamic>? ?? {};
+
                 return Card(
                   child: ListTile(
-                    title: Text(data['displayName'] ?? ''),
-                    subtitle: Text(data['email'] ?? ''),
+                    title: Text(data['displayName'] ?? 'No name'),
+                    subtitle: Text(data['email'] ?? 'No email'),
                     trailing: Text(data['address'] ?? ''),
                   ),
                 );
               },
             ),
+
             const SizedBox(height: 16),
+
+            /// 🔹 LISTINGS
             Text(
               'Listings by this user',
               style: theme.textTheme.titleMedium?.copyWith(
@@ -56,16 +78,28 @@ class UserDetailScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
+
             SizedBox(
               height: 200,
               child: StreamBuilder<QuerySnapshot>(
-                stream:
-                    itemsRef.where('ownerId', isEqualTo: userId).snapshots(),
+                stream: itemsRef
+                    .where('ownerId', isEqualTo: userId)
+                    .snapshots(),
                 builder: (context, snapshot) {
-                  if (!snapshot.hasData) {
-                    return const Center(child: CircularProgressIndicator());
+
+                  if (snapshot.hasError) {
+                    return const Center(
+                        child: Text("Error loading listings"));
                   }
-                  final docs = snapshot.data!.docs;
+
+                  if (snapshot.connectionState ==
+                      ConnectionState.waiting) {
+                    return const Center(
+                        child: CircularProgressIndicator());
+                  }
+
+                  final docs = snapshot.data?.docs ?? [];
+
                   if (docs.isEmpty) {
                     return Text(
                       'No listings',
@@ -74,12 +108,15 @@ class UserDetailScreen extends StatelessWidget {
                       ),
                     );
                   }
+
                   return ListView(
                     padding: EdgeInsets.zero,
                     children: docs.map((doc) {
-                      final data = doc.data() as Map<String, dynamic>? ?? {};
+                      final data =
+                          doc.data() as Map<String, dynamic>? ?? {};
                       return Card(
-                        margin: const EdgeInsets.only(bottom: 8),
+                        margin:
+                            const EdgeInsets.only(bottom: 8),
                         child: ListTile(
                           title: Text(
                             data['title']?.toString() ?? '',
@@ -98,7 +135,10 @@ class UserDetailScreen extends StatelessWidget {
                 },
               ),
             ),
+
             const SizedBox(height: 16),
+
+            /// 🔹 ORDERS AS LENDER
             Text(
               'Orders as Lender',
               style: theme.textTheme.titleMedium?.copyWith(
@@ -106,16 +146,28 @@ class UserDetailScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
+
             SizedBox(
               height: 200,
               child: StreamBuilder<QuerySnapshot>(
-                stream:
-                    ordersRef.where('lenderId', isEqualTo: userId).snapshots(),
+                stream: ordersRef
+                    .where('lenderId', isEqualTo: userId)
+                    .snapshots(),
                 builder: (context, snapshot) {
-                  if (!snapshot.hasData) {
-                    return const Center(child: CircularProgressIndicator());
+
+                  if (snapshot.hasError) {
+                    return const Center(
+                        child: Text("Error loading orders"));
                   }
-                  final docs = snapshot.data!.docs;
+
+                  if (snapshot.connectionState ==
+                      ConnectionState.waiting) {
+                    return const Center(
+                        child: CircularProgressIndicator());
+                  }
+
+                  final docs = snapshot.data?.docs ?? [];
+
                   if (docs.isEmpty) {
                     return Text(
                       'No orders as lender',
@@ -124,12 +176,15 @@ class UserDetailScreen extends StatelessWidget {
                       ),
                     );
                   }
+
                   return ListView(
                     padding: EdgeInsets.zero,
                     children: docs.map((doc) {
-                      final data = doc.data() as Map<String, dynamic>? ?? {};
+                      final data =
+                          doc.data() as Map<String, dynamic>? ?? {};
                       return Card(
-                        margin: const EdgeInsets.only(bottom: 8),
+                        margin:
+                            const EdgeInsets.only(bottom: 8),
                         child: ListTile(
                           title: Text(
                             'Order: ${doc.id}',
@@ -148,7 +203,10 @@ class UserDetailScreen extends StatelessWidget {
                 },
               ),
             ),
+
             const SizedBox(height: 16),
+
+            /// 🔹 ORDERS AS BORROWER
             Text(
               'Orders as Borrower',
               style: theme.textTheme.titleMedium?.copyWith(
@@ -156,6 +214,7 @@ class UserDetailScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
+
             SizedBox(
               height: 200,
               child: StreamBuilder<QuerySnapshot>(
@@ -163,10 +222,20 @@ class UserDetailScreen extends StatelessWidget {
                     .where('borrowerId', isEqualTo: userId)
                     .snapshots(),
                 builder: (context, snapshot) {
-                  if (!snapshot.hasData) {
-                    return const Center(child: CircularProgressIndicator());
+
+                  if (snapshot.hasError) {
+                    return const Center(
+                        child: Text("Error loading orders"));
                   }
-                  final docs = snapshot.data!.docs;
+
+                  if (snapshot.connectionState ==
+                      ConnectionState.waiting) {
+                    return const Center(
+                        child: CircularProgressIndicator());
+                  }
+
+                  final docs = snapshot.data?.docs ?? [];
+
                   if (docs.isEmpty) {
                     return Text(
                       'No orders as borrower',
@@ -175,12 +244,15 @@ class UserDetailScreen extends StatelessWidget {
                       ),
                     );
                   }
+
                   return ListView(
                     padding: EdgeInsets.zero,
                     children: docs.map((doc) {
-                      final data = doc.data() as Map<String, dynamic>? ?? {};
+                      final data =
+                          doc.data() as Map<String, dynamic>? ?? {};
                       return Card(
-                        margin: const EdgeInsets.only(bottom: 8),
+                        margin:
+                            const EdgeInsets.only(bottom: 8),
                         child: ListTile(
                           title: Text(
                             'Order: ${doc.id}',
