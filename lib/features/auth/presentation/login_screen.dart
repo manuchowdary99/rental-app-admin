@@ -16,7 +16,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
+
   bool _loading = false;
+  bool _isPasswordVisible = false;
+
   String? _error;
 
   @override
@@ -46,7 +49,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [Color(0xFF781C2E), Color(0xFF5A1521)],
+              colors: [
+                Color(0xFF781C2E),
+                Color(0xFF5A1521),
+                Color(0xFF3E0F18),
+              ],
             ),
           ),
           child: SafeArea(
@@ -54,10 +61,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(24),
                 child: Container(
-                  constraints: const BoxConstraints(maxWidth: 400),
+                  constraints: const BoxConstraints(maxWidth: 420),
                   child: Card(
                     elevation: 20,
-                    shadowColor: Colors.black.withValues(alpha: 0.3),
+                    shadowColor: Colors.black.withOpacity(0.3),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(24),
                     ),
@@ -65,83 +72,81 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       padding: const EdgeInsets.all(32),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(24),
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            Colors.white,
-                            Colors.white.withValues(alpha: 0.9),
-                          ],
-                        ),
+                        color: Colors.white.withOpacity(0.95),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.25),
+                            blurRadius: 30,
+                            offset: const Offset(0, 15),
+                          ),
+                        ],
                       ),
                       child: Form(
                         key: _formKey,
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            // Modern 3D Icon
+
+                            // Admin Icon
                             Container(
-                              width: 80,
-                              height: 80,
+                              width: 90,
+                              height: 90,
                               decoration: BoxDecoration(
                                 gradient: const LinearGradient(
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
                                   colors: [
                                     Color(0xFF781C2E),
-                                    Color(0xFF5A1521),
+                                    Color(0xFF9E2F3C),
                                   ],
                                 ),
-                                borderRadius: BorderRadius.circular(20),
+                                borderRadius: BorderRadius.circular(22),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: const Color(
-                                      0xFF781C2E,
-                                    ).withValues(alpha: 0.4),
-                                    blurRadius: 20,
-                                    offset: const Offset(0, 8),
+                                    color: const Color(0xFF781C2E)
+                                        .withOpacity(0.4),
+                                    blurRadius: 25,
+                                    offset: const Offset(0, 10),
                                   ),
                                 ],
                               ),
                               child: const Icon(
                                 Icons.admin_panel_settings_rounded,
                                 color: Colors.white,
-                                size: 40,
+                                size: 42,
                               ),
                             ),
-                            const SizedBox(height: 32),
 
-                            // Title
+                            const SizedBox(height: 28),
+
                             const Text(
                               'Admin Portal',
                               style: TextStyle(
-                                fontSize: 32,
+                                fontSize: 30,
                                 fontWeight: FontWeight.bold,
                                 color: Color(0xFF1E293B),
                               ),
                             ),
-                            const SizedBox(height: 8),
+
+                            const SizedBox(height: 6),
+
                             Text(
-                              'Welcome back! Please sign in to continue.',
+                              'Secure dashboard access',
                               style: TextStyle(
-                                fontSize: 16,
+                                fontSize: 15,
                                 color: Colors.grey[600],
                               ),
-                              textAlign: TextAlign.center,
                             ),
-                            const SizedBox(height: 32),
 
-                            // Error Message
+                            const SizedBox(height: 28),
+
                             if (_error != null) ...[
                               Container(
-                                padding: const EdgeInsets.all(16),
+                                padding: const EdgeInsets.all(14),
                                 decoration: BoxDecoration(
                                   color: const Color(0xFFF9F6EE),
                                   borderRadius: BorderRadius.circular(12),
                                   border: Border.all(
-                                    color: const Color(
-                                      0xFF781C2E,
-                                    ).withValues(alpha: 0.3),
+                                    color: const Color(0xFF781C2E)
+                                        .withOpacity(0.3),
                                   ),
                                 ),
                                 child: Row(
@@ -150,7 +155,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                       Icons.error_outline,
                                       color: Color(0xFF781C2E),
                                     ),
-                                    const SizedBox(width: 12),
+                                    const SizedBox(width: 10),
                                     Expanded(
                                       child: Text(
                                         _error!,
@@ -165,132 +170,118 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               const SizedBox(height: 20),
                             ],
 
-                            const SizedBox(height: 20),
-
                             // Email Field
-                            Container(
-                              decoration: BoxDecoration(
-                                color: Colors.grey[50],
-                                borderRadius: BorderRadius.circular(16),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.05),
-                                    blurRadius: 10,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
-                              ),
-                              child: TextFormField(
-                                controller: _emailCtrl,
-                                keyboardType: TextInputType.emailAddress,
-                                textInputAction: TextInputAction.next,
-                                onFieldSubmitted: (_) {
-                                  // Move focus to password field when Enter is pressed
-                                  FocusScope.of(context).nextFocus();
-                                },
-                                decoration: InputDecoration(
-                                  labelText: 'Email',
-                                  prefixIcon: Icon(
-                                    Icons.email_rounded,
-                                    color: Colors.grey[600],
-                                  ),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                    borderSide: BorderSide.none,
-                                  ),
-                                  filled: true,
-                                  fillColor: Colors.transparent,
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 20,
-                                    vertical: 16,
+                            TextFormField(
+                              controller: _emailCtrl,
+                              keyboardType: TextInputType.emailAddress,
+                              textInputAction: TextInputAction.next,
+                              decoration: InputDecoration(
+                                labelText: 'Email',
+                                prefixIcon: const Icon(Icons.email_rounded),
+                                filled: true,
+                                fillColor: const Color(0xFFF9F6EE),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                  borderSide: BorderSide.none,
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                  borderSide: const BorderSide(
+                                    color: Color(0xFF781C2E),
+                                    width: 2,
                                   ),
                                 ),
-                                validator: (v) {
-                                  if (v == null || v.isEmpty) {
-                                    return 'Email required';
-                                  }
-                                  if (!RegExp(
-                                    r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
-                                  ).hasMatch(v)) {
-                                    return 'Invalid email format';
-                                  }
-                                  return null;
-                                },
                               ),
+                              validator: (v) {
+                                if (v == null || v.isEmpty) {
+                                  return 'Email required';
+                                }
+                                if (!RegExp(
+                                  r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                                ).hasMatch(v)) {
+                                  return 'Invalid email format';
+                                }
+                                return null;
+                              },
                             ),
-                            const SizedBox(height: 20),
 
-                            // Password Field
-                            Container(
-                              decoration: BoxDecoration(
-                                color: Colors.grey[50],
-                                borderRadius: BorderRadius.circular(16),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.05),
-                                    blurRadius: 10,
-                                    offset: const Offset(0, 4),
+                            const SizedBox(height: 18),
+
+                            // Password Field with Eye
+                            TextFormField(
+                              controller: _passwordCtrl,
+                              obscureText: !_isPasswordVisible,
+                              textInputAction: TextInputAction.done,
+                              onFieldSubmitted: (_) {
+                                if (!_loading) {
+                                  _submit();
+                                }
+                              },
+                              decoration: InputDecoration(
+                                labelText: 'Password',
+                                prefixIcon: const Icon(Icons.lock_rounded),
+                                suffixIcon: IconButton(
+                                  icon: Icon(
+                                    _isPasswordVisible
+                                        ? Icons.visibility
+                                        : Icons.visibility_off,
+                                    color: const Color(0xFF781C2E),
                                   ),
-                                ],
-                              ),
-                              child: TextFormField(
-                                controller: _passwordCtrl,
-                                obscureText: true,
-                                textInputAction: TextInputAction.done,
-                                onFieldSubmitted: (_) {
-                                  // Submit form when Enter is pressed in password field
-                                  if (!_loading) {
-                                    _submit();
-                                  }
-                                },
-                                decoration: InputDecoration(
-                                  labelText: 'Password',
-                                  prefixIcon: Icon(
-                                    Icons.lock_rounded,
-                                    color: Colors.grey[600],
-                                  ),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                    borderSide: BorderSide.none,
-                                  ),
-                                  filled: true,
-                                  fillColor: Colors.transparent,
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 20,
-                                    vertical: 16,
+                                  onPressed: () {
+                                    setState(() {
+                                      _isPasswordVisible =
+                                          !_isPasswordVisible;
+                                    });
+                                  },
+                                ),
+                                filled: true,
+                                fillColor: const Color(0xFFF9F6EE),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                  borderSide: BorderSide.none,
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                  borderSide: const BorderSide(
+                                    color: Color(0xFF781C2E),
+                                    width: 2,
                                   ),
                                 ),
-                                validator: (v) => v?.isEmpty == true
-                                    ? 'Password required'
-                                    : null,
                               ),
+                              validator: (v) =>
+                                  v?.isEmpty == true
+                                      ? 'Password required'
+                                      : null,
                             ),
-                            const SizedBox(height: 32),
+
+                            const SizedBox(height: 22),
 
                             Align(
                               alignment: Alignment.centerRight,
                               child: TextButton(
-                                onPressed: _loading ? null : _forgotPassword,
+                                onPressed:
+                                    _loading ? null : _forgotPassword,
                                 child: const Text('Forgot password?'),
                               ),
                             ),
+
                             const SizedBox(height: 12),
 
-                            // Login Button
                             SizedBox(
                               width: double.infinity,
                               height: 56,
                               child: ElevatedButton(
                                 onPressed: _loading ? null : _submit,
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF781C2E),
+                                  backgroundColor:
+                                      const Color(0xFF781C2E),
                                   foregroundColor: Colors.white,
-                                  elevation: 8,
-                                  shadowColor: const Color(
-                                    0xFF781C2E,
-                                  ).withValues(alpha: 0.4),
+                                  elevation: 10,
+                                  shadowColor: const Color(0xFF781C2E)
+                                      .withOpacity(0.5),
                                   shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16),
+                                    borderRadius:
+                                        BorderRadius.circular(16),
                                   ),
                                 ),
                                 child: _loading
@@ -301,12 +292,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                         'Sign In',
                                         style: TextStyle(
                                           fontSize: 18,
-                                          fontWeight: FontWeight.bold,
+                                          fontWeight:
+                                              FontWeight.bold,
                                         ),
                                       ),
                               ),
                             ),
-                            const SizedBox(height: 12),
+
+                            const SizedBox(height: 10),
                           ],
                         ),
                       ),
@@ -335,8 +328,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             email: _emailCtrl.text.trim(),
             password: _passwordCtrl.text.trim(),
           );
-      // DO NOTHING ELSE HERE
-      // Navigation happens via authStateChanges
     } on AdminAccessException catch (e) {
       if (!mounted) return;
       setState(() {
@@ -372,17 +363,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     });
 
     try {
-      await ref.read(authServiceProvider).sendAdminPasswordReset(email);
+      await ref
+          .read(authServiceProvider)
+          .sendAdminPasswordReset(email);
+
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Password reset link sent to your email.'),
+          content:
+              Text('Password reset link sent to your email.'),
         ),
       );
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = 'Unable to send reset email. Please try again.';
+        _error =
+            'Unable to send reset email. Please try again.';
       });
     } finally {
       if (mounted) {
