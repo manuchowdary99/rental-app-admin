@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/product_service.dart';
 import '../models/product.dart';
+import 'product_details_screen.dart';
 
 class UserProductsScreen extends StatelessWidget {
   final ProductService _productService = ProductService();
@@ -288,52 +289,13 @@ class UserProductsScreen extends StatelessWidget {
   }
 
   void _showProductDetails(BuildContext context, Product product) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(product.name),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildDetailRow('Category', product.categoryName),
-              _buildDetailRow('Price', '₹${product.price.toStringAsFixed(2)}'),
-              _buildDetailRow('Status', product.status.toUpperCase()),
-              _buildDetailRow('Created', _formatDate(product.createdAt)),
-              if (product.isFlagged)
-                _buildDetailRow('Risk Score', '${product.riskScore}'),
-              _buildDetailRow('Active', product.isActive ? 'Yes' : 'No'),
-            ],
-          ),
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ProductDetailsScreen(
+          productId: product.id,
+          initialName: product.name,
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDetailRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 80,
-            child: Text(
-              '$label:',
-              style: const TextStyle(fontWeight: FontWeight.w600),
-            ),
-          ),
-          Expanded(
-            child: Text(value),
-          ),
-        ],
       ),
     );
   }

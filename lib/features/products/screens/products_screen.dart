@@ -8,6 +8,7 @@ import '../models/product.dart';
 import '../../categories/services/category_service.dart';
 import '../../categories/models/category.dart';
 import '../../navigation/widgets/admin_app_drawer.dart';
+import 'product_details_screen.dart';
 
 class ProductsScreen extends StatefulWidget {
   const ProductsScreen({super.key});
@@ -121,16 +122,14 @@ class _ProductsScreenState extends State<ProductsScreen> {
                   ],
                 ),
                 trailing: PopupMenuButton<String>(
-                  icon: Icon(Icons.more_vert,
-                      color: scheme.onSurfaceVariant),
+                  icon: Icon(Icons.more_vert, color: scheme.onSurfaceVariant),
                   onSelected: (value) async {
                     if (value == 'approve') {
                       await _productService.approveProduct(product.id);
                     } else if (value == 'reject') {
                       await _productService.rejectProduct(product.id);
                     } else if (value == 'pending') {
-                      await _productService.updateStatus(
-                          product.id, 'pending');
+                      await _productService.updateStatus(product.id, 'pending');
                     } else if (value == 'flag') {
                       await _productService.toggleFlag(
                           product.id, product.isFlagged);
@@ -148,8 +147,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
                           value: 'reject', child: Text('Reject')),
                     PopupMenuItem(
                       value: 'flag',
-                      child:
-                          Text(product.isFlagged ? 'Unflag' : 'Flag'),
+                      child: Text(product.isFlagged ? 'Unflag' : 'Flag'),
                     ),
                   ],
                 ),
@@ -164,14 +162,13 @@ class _ProductsScreenState extends State<ProductsScreen> {
 
   List<Product> _applyFilters(List<Product> products) {
     return products.where((product) {
-      if (_statusFilter == 'Approved' &&
-          product.status != 'approved') return false;
-      if (_statusFilter == 'Pending' &&
-          product.status != 'pending') return false;
-      if (_statusFilter == 'Rejected' &&
-          product.status != 'rejected') return false;
-      if (_statusFilter == 'Flagged' &&
-          !product.isFlagged) return false;
+      if (_statusFilter == 'Approved' && product.status != 'approved')
+        return false;
+      if (_statusFilter == 'Pending' && product.status != 'pending')
+        return false;
+      if (_statusFilter == 'Rejected' && product.status != 'rejected')
+        return false;
+      if (_statusFilter == 'Flagged' && !product.isFlagged) return false;
       return true;
     }).toList();
   }
@@ -189,74 +186,14 @@ class _ProductsScreenState extends State<ProductsScreen> {
     }
   }
 
-  // 🔥 UPDATED DETAILED POPUP
   void _showProductDetails(Product product) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: scheme.surfaceContainerHigh,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ProductDetailsScreen(
+          productId: product.id,
+          initialName: product.name,
         ),
-        title: const Text("Product Details"),
-        content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _detailRow("Name", product.name),
-              _detailRow(
-                  "Price",
-                  "₹${product.price.toStringAsFixed(2)}"),
-              _detailRow("Category", product.categoryName),
-              _detailRow(
-                  "Status",
-                  product.status.toUpperCase()),
-              _detailRow(
-                  "Flagged",
-                  product.isFlagged
-                      ? "YES ⚠"
-                      : "No"),
-              _detailRow(
-                  "Created",
-                  product.createdAt
-                      .toString()
-                      .split(" ")
-                      .first),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Close"),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _detailRow(String title, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 13,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            value,
-            style: const TextStyle(fontSize: 14),
-          ),
-        ],
       ),
     );
   }

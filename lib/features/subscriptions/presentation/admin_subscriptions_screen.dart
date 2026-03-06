@@ -5,7 +5,6 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
-import '../../users/presentation/users_detail_screen.dart';
 import '../models/subscription_plan.dart';
 import '../models/user_subscription.dart';
 import '../services/subscription_service.dart';
@@ -843,11 +842,58 @@ class _AdminSubscriptionsScreenState extends State<AdminSubscriptionsScreen> {
   }
 
   void _viewProfile(UserSubscription subscription) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => UserDetailScreen(userId: subscription.userId),
+    if (subscription.userId.isEmpty) return;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _SubscriptionUserSummarySheet(
+        subscription: subscription,
+        insightsFuture: _fetchUserInsights(subscription.userId),
+        dateFormatter: _formatDate,
       ),
     );
+  }
+
+  Future<_SubscriptionUserInsights> _fetchUserInsights(String userId) async {
+    final firestore = FirebaseFirestore.instance;
+    final productsQuery = firestore.collection('products').where(
+          Filter.or(
+            Filter('userId', isEqualTo: userId),
+            Filter('ownerId', isEqualTo: userId),
+          ),
+        );
+    final itemsQuery =
+        firestore.collection('items').where('ownerId', isEqualTo: userId);
+    final ordersQuery = firestore.collection('orders').where(
+          Filter.or(
+            Filter('userId', isEqualTo: userId),
+            Filter('buyerId', isEqualTo: userId),
+          ),
+        );
+
+    final results = await Future.wait<int>([
+      _countDocuments(productsQuery),
+      _countDocuments(itemsQuery),
+      _countDocuments(ordersQuery),
+    ]);
+
+    return _SubscriptionUserInsights(
+      listingsCount: results[0] + results[1],
+      ordersCount: results[2],
+    );
+  }
+
+  Future<int> _countDocuments(Query<Map<String, dynamic>> query) async {
+    try {
+      final aggregate = await query.count().get();
+      return aggregate.count ?? 0;
+    } catch (_) {
+      // Fallback for emulators or older Firestore backends without count() support.
+      final snapshot = await query.get();
+      return snapshot.size;
+    }
   }
 
   Future<void> _handleNotify(
@@ -1452,5 +1498,194 @@ class _SubscriberCard extends StatelessWidget {
     final parts = trimmed.split(' ');
     if (parts.length == 1) return trimmed[0].toUpperCase();
     return parts.take(2).map((e) => e[0].toUpperCase()).join();
+  }
+}
+
+class _SubscriptionUserInsights {
+  final int listingsCount;
+  final int ordersCount;
+
+  const _SubscriptionUserInsights({
+    required this.listingsCount,
+    required this.ordersCount,
+  });
+}
+
+class _SubscriptionUserSummarySheet extends StatelessWidget {
+  final UserSubscription subscription;
+  final Future<_SubscriptionUserInsights> insightsFuture;
+  final String Function(DateTime?) dateFormatter;
+
+  const _SubscriptionUserSummarySheet({
+    required this.subscription,
+    required this.insightsFuture,
+    required this.dateFormatter,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return SafeArea(
+      child: Container(
+        padding: EdgeInsets.only(
+          left: 24,
+          right: 24,
+          top: 16,
+          bottom: 24 + MediaQuery.of(context).viewInsets.bottom,
+        ),
+        decoration: BoxDecoration(
+          color: scheme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.12),
+              blurRadius: 20,
+              offset: const Offset(0, -6),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 46,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: scheme.outlineVariant,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            Text(
+              'Subscriber Snapshot',
+              style:
+                  textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 16),
+            _infoRow('Name', subscription.userName ?? 'Unavailable'),
+            _infoRow('Phone', subscription.userPhone ?? 'Not provided'),
+            _infoRow('Email', subscription.userEmail ?? 'Not provided'),
+            _infoRow(
+                'Subscribed', dateFormatter(subscription.startedAt?.toDate())),
+            _infoRow('Plan', subscription.planName ?? '—'),
+            const SizedBox(height: 20),
+            FutureBuilder<_SubscriptionUserInsights>(
+              future: insightsFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(vertical: 12),
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  );
+                }
+
+                if (snapshot.hasError || !snapshot.hasData) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    child: Text(
+                      'Unable to load activity stats',
+                      style:
+                          textTheme.bodyMedium?.copyWith(color: scheme.error),
+                    ),
+                  );
+                }
+
+                final insights = snapshot.data!;
+                return Row(
+                  children: [
+                    Expanded(
+                      child: _statCard(
+                        context,
+                        label: 'Listings',
+                        value: insights.listingsCount,
+                        color: scheme.primary,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _statCard(
+                        context,
+                        label: 'Orders',
+                        value: insights.ordersCount,
+                        color: scheme.secondary,
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _infoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 120,
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF5B4C46),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(color: Color(0xFF2D1B1B)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _statCard(
+    BuildContext context, {
+    required String label,
+    required int value,
+    required Color color,
+  }) {
+    final textTheme = Theme.of(context).textTheme;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            value.toString(),
+            style: textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: textTheme.bodyMedium?.copyWith(color: color),
+          ),
+        ],
+      ),
+    );
   }
 }

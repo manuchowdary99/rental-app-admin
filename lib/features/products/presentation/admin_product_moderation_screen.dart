@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../screens/product_details_screen.dart';
+
 class AdminProductModerationScreen extends StatelessWidget {
   const AdminProductModerationScreen({super.key});
 
@@ -243,11 +245,13 @@ class _ProductCard extends StatelessWidget {
   }
 
   void _showProductDetails(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => const AlertDialog(
-        title: Text('Product Details'),
-        content: Text('Detailed view here'),
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ProductDetailsScreen(
+          productId: productId,
+          initialName: data['name']?.toString(),
+        ),
       ),
     );
   }
