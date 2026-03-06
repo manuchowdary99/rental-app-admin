@@ -339,4 +339,76 @@ class SubscriptionService {
     final result = value.toString().trim();
     return result.isEmpty ? null : result;
   }
+
+  // -------------------------------
+  // ANALYTICS METHODS
+  // -------------------------------
+
+  Future<int> getActiveSubscribersCount() async {
+    final snapshot = await _subscriptionsCollection
+        .where('status', isEqualTo: 'active')
+        .get();
+    return snapshot.docs.length;
+  }
+
+  Future<double> getTotalActiveRevenue() async {
+    final snapshot = await _subscriptionsCollection
+        .where('status', isEqualTo: 'active')
+        .get();
+
+    double revenue = 0;
+
+    for (final doc in snapshot.docs) {
+      final data = doc.data();
+      final price = (data['monthlyPrice'] ?? data['price'] ?? 0).toDouble();
+      revenue += price;
+    }
+
+    return revenue;
+  }
+
+  Future<Map<String, int>> getPlanPopularity() async {
+    final snapshot = await _subscriptionsCollection.get();
+    final Map<String, int> planCounts = {};
+
+    for (final doc in snapshot.docs) {
+      final plan = doc.data()['planName'] ?? 'Unknown';
+      planCounts[plan] = (planCounts[plan] ?? 0) + 1;
+    }
+
+    return planCounts;
+  }
+
+  Future<List<Map<String, dynamic>>> getRecentSubscriptionActivity() async {
+    final snapshot = await _subscriptionsCollection
+        .orderBy('updatedAt', descending: true)
+        .limit(10)
+        .get();
+
+    return snapshot.docs.map((doc) {
+      final data = doc.data();
+      return {
+        "userId": data['userId'],
+        "plan": data['planName'],
+        "status": data['status'],
+        "updatedAt": data['updatedAt'],
+      };
+    }).toList();
+  }
+
+  Future<Map<String, int>> getMonthlySubscriptionGrowth() async {
+    final snapshot = await _subscriptionsCollection.get();
+    final Map<String, int> growth = {};
+
+    for (final doc in snapshot.docs) {
+      final created = doc.data()['createdAt'];
+      if (created == null) continue;
+
+      final date = (created as Timestamp).toDate();
+      final key = "${date.year}-${date.month}";
+      growth[key] = (growth[key] ?? 0) + 1;
+    }
+
+    return growth;
+  }
 }

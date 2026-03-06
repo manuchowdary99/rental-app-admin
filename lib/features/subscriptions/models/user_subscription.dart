@@ -29,45 +29,73 @@ class UserSubscription {
   final int price;
   final String currency;
   final bool autoRenew;
+
   final String? userName;
   final String? userEmail;
   final String? userPhone;
+
   final Timestamp? startedAt;
   final Timestamp? renewsAt;
   final Timestamp? canceledAt;
   final String? cancelReason;
 
+  /// ------------------------------------------------
+  /// STATUS HELPERS
+  /// ------------------------------------------------
+
   bool get isActive => status == 'active';
   bool get isCanceled => status == 'canceled';
   bool get isExpired => status == 'expired';
 
+  /// ------------------------------------------------
+  /// ADD THIS GETTER (for compatibility)
+  /// ------------------------------------------------
+
+  Timestamp? get expiryDate => renewsAt;
+
+  /// ------------------------------------------------
+  /// FIRESTORE MAPPING
+  /// ------------------------------------------------
+
   factory UserSubscription.fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data() ?? <String, dynamic>{};
+
     return UserSubscription(
       id: doc.id,
       userId: (data['userId'] ?? doc.id).toString(),
+
       planId: (data['planId'] ?? data['subscriptionTier'] ?? '').toString(),
+
       planName: (data['planName'] ??
               data['subscriptionTier'] ??
               data['planId'] ??
               'Unknown Plan')
           .toString(),
+
       billingCycle: (data['billingCycle'] ??
               data['subscriptionCycle'] ??
               data['subscriptionDuration'] ??
               'monthly')
           .toString(),
+
       status:
           (data['status'] ?? data['subscriptionStatus'] ?? 'active').toString(),
+
       price: _readPrice(
         data['price'] ?? data['amount'] ?? data['subscriptionAmount'],
       ),
+
       currency: (data['currency'] ?? data['subscriptionCurrency'] ?? 'INR')
           .toString(),
+
       autoRenew: data['autoRenew'] != false,
+
       userName: data['userName']?.toString() ?? data['user_name']?.toString(),
+
       userEmail: data['userEmail']?.toString() ?? data['email']?.toString(),
+
       userPhone: data['userPhone']?.toString() ?? data['phone']?.toString(),
+
       startedAt: data['startedAt'] is Timestamp
           ? data['startedAt'] as Timestamp
           : data['startDate'] is Timestamp
@@ -75,6 +103,7 @@ class UserSubscription {
               : data['subscriptionStart'] is Timestamp
                   ? data['subscriptionStart'] as Timestamp
                   : null,
+
       renewsAt: data['subscriptionExpiry'] is Timestamp
           ? data['subscriptionExpiry'] as Timestamp
           : data['expiryDate'] is Timestamp
@@ -82,12 +111,18 @@ class UserSubscription {
               : data['renewsAt'] is Timestamp
                   ? data['renewsAt'] as Timestamp
                   : null,
+
       canceledAt: data['canceledAt'] is Timestamp
           ? data['canceledAt'] as Timestamp
           : null,
+
       cancelReason: data['cancelReason']?.toString(),
     );
   }
+
+  /// ------------------------------------------------
+  /// COPY WITH
+  /// ------------------------------------------------
 
   UserSubscription copyWith({
     String? id,
@@ -127,10 +162,17 @@ class UserSubscription {
     );
   }
 
+  /// ------------------------------------------------
+  /// PRICE PARSER
+  /// ------------------------------------------------
+
   static int _readPrice(dynamic value) {
     if (value == null) return 0;
+
     if (value is int) return value;
+
     if (value is double) return value.round();
+
     return int.tryParse(value.toString()) ?? 0;
   }
 }
