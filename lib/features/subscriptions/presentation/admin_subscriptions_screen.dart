@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -27,6 +30,7 @@ class _AdminSubscriptionsScreenState extends State<AdminSubscriptionsScreen> {
   String _statusFilter = 'active';
   String _planFilter = 'all';
   bool _showOnlyActivePlans = true;
+  bool _plansExpanded = false;
   bool _autoExpireInProgress = false;
 
   @override
@@ -89,6 +93,8 @@ class _AdminSubscriptionsScreenState extends State<AdminSubscriptionsScreen> {
                     children: [
                       _buildHeader(plans, subscriptions),
                       const SizedBox(height: 20),
+                      _buildVerificationSection(),
+                      const SizedBox(height: 24),
                       _buildPlanSection(plans),
                       const SizedBox(height: 24),
                       _buildSubscriberSection(plans, subscriptions),
@@ -150,6 +156,7 @@ class _AdminSubscriptionsScreenState extends State<AdminSubscriptionsScreen> {
         subscriptions.where((sub) => sub.status == 'active').length;
     final canceledSubs =
         subscriptions.where((sub) => sub.status == 'canceled').length;
+    final revenue = _activeRevenue(plans, subscriptions);
 
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
@@ -172,35 +179,65 @@ class _AdminSubscriptionsScreenState extends State<AdminSubscriptionsScreen> {
           ),
         ),
         const SizedBox(height: 18),
-        Row(
-          children: [
-            Expanded(
-              child: _StatCard(
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final cardGap = 12.0;
+            final isNarrow = constraints.maxWidth < 700;
+
+            final cards = [
+              _StatCard(
                 label: 'Active Plans',
                 value: activePlans.toString(),
                 icon: Icons.view_week_rounded,
                 color: scheme.primary,
               ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _StatCard(
+              _StatCard(
                 label: 'Active Subscribers',
                 value: activeSubs.toString(),
                 icon: Icons.verified_user_rounded,
                 color: scheme.secondary,
               ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _StatCard(
+              _StatCard(
+                label: 'Revenue',
+                value: _priceFormat.format(revenue),
+                icon: Icons.payments_rounded,
+                color: Colors.green,
+              ),
+              _StatCard(
                 label: 'Canceled',
                 value: canceledSubs.toString(),
                 icon: Icons.cancel_schedule_send_rounded,
                 color: scheme.error,
               ),
-            ),
-          ],
+            ];
+
+            if (isNarrow) {
+              return Wrap(
+                spacing: cardGap,
+                runSpacing: cardGap,
+                children: cards
+                    .map(
+                      (card) => SizedBox(
+                        width: (constraints.maxWidth - cardGap) / 2,
+                        child: card,
+                      ),
+                    )
+                    .toList(),
+              );
+            }
+
+            return Row(
+              children: [
+                Expanded(child: cards[0]),
+                const SizedBox(width: 12),
+                Expanded(child: cards[1]),
+                const SizedBox(width: 12),
+                Expanded(child: cards[2]),
+                const SizedBox(width: 12),
+                Expanded(child: cards[3]),
+              ],
+            );
+          },
         ),
         const SizedBox(height: 12),
         Align(
@@ -242,53 +279,414 @@ class _AdminSubscriptionsScreenState extends State<AdminSubscriptionsScreen> {
           children: [
             Row(
               children: [
-                const Text(
-                  'Plans',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
+                InkWell(
+                  borderRadius: BorderRadius.circular(8),
+                  onTap: () {
+                    setState(() => _plansExpanded = !_plansExpanded);
+                  },
+                  child: Row(
+                    children: [
+                      const Text(
+                        'Plans',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Icon(
+                        _plansExpanded
+                            ? Icons.keyboard_arrow_up_rounded
+                            : Icons.keyboard_arrow_down_rounded,
+                      ),
+                    ],
                   ),
                 ),
                 const Spacer(),
-                TextButton.icon(
-                  onPressed: () => _openPlanEditor(),
-                  icon: const Icon(Icons.add_rounded),
-                  label: const Text('New plan'),
-                ),
-                const SizedBox(width: 8),
-                FilterChip(
-                  label: const Text('Only active'),
-                  selected: _showOnlyActivePlans,
-                  onSelected: (value) {
-                    setState(() => _showOnlyActivePlans = value);
-                  },
-                ),
+                if (_plansExpanded) ...[
+                  TextButton.icon(
+                    onPressed: () => _openPlanEditor(),
+                    icon: const Icon(Icons.add_rounded),
+                    label: const Text('New plan'),
+                  ),
+                  const SizedBox(width: 8),
+                  FilterChip(
+                    label: const Text('Only active'),
+                    selected: _showOnlyActivePlans,
+                    onSelected: (value) {
+                      setState(() => _showOnlyActivePlans = value);
+                    },
+                  ),
+                ],
               ],
             ),
-            const SizedBox(height: 12),
-            if (visiblePlans.isEmpty)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 12),
-                child: Text('No plans match this filter'),
-              )
-            else
-              Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                children: visiblePlans
-                    .map((plan) => _PlanCard(
-                          plan: plan,
-                          priceFormat: _priceFormat,
-                          onEdit: () => _openPlanEditor(plan: plan),
-                          onToggleActive: (value) =>
-                              _service.setPlanActive(plan.id, value),
-                        ))
-                    .toList(),
+            AnimatedCrossFade(
+              duration: const Duration(milliseconds: 220),
+              crossFadeState: _plansExpanded
+                  ? CrossFadeState.showSecond
+                  : CrossFadeState.showFirst,
+              firstChild: const Padding(
+                padding: EdgeInsets.only(top: 10),
+                child: Text('Tap the arrow to view plan details.'),
               ),
+              secondChild: Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: visiblePlans.isEmpty
+                    ? const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 12),
+                        child: Text('No plans match this filter'),
+                      )
+                    : Wrap(
+                        spacing: 12,
+                        runSpacing: 12,
+                        children: visiblePlans
+                            .map((plan) => _PlanCard(
+                                  plan: plan,
+                                  priceFormat: _priceFormat,
+                                  onEdit: () => _openPlanEditor(plan: plan),
+                                  onToggleActive: (value) =>
+                                      _service.setPlanActive(plan.id, value),
+                                ))
+                            .toList(),
+                      ),
+              ),
+            ),
           ],
         ),
       ),
     );
+  }
+
+  Widget _buildVerificationSection() {
+    return StreamBuilder<List<Map<String, dynamic>>>(
+      stream: _service.streamSubscriptionVerifications(),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Card(
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            elevation: 0,
+            child: const Padding(
+              padding: EdgeInsets.all(20),
+              child: Text('Unable to load subscription verifications'),
+            ),
+          );
+        }
+
+        final verifications = snapshot.data ?? const [];
+        final pendingCount = verifications
+            .where((entry) => (entry['status'] ?? '').toString() == 'pending')
+            .length;
+
+        return Card(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          elevation: 0,
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Text(
+                      'Payment Verifications',
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                    ),
+                    const SizedBox(width: 12),
+                    Chip(label: Text('$pendingCount pending')),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                const Text(
+                  'Review QR payment proofs (UTR + screenshot) submitted by users.',
+                ),
+                const SizedBox(height: 14),
+                if (!snapshot.hasData)
+                  const Center(child: CircularProgressIndicator())
+                else if (verifications.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8),
+                    child: Text('No verification requests yet.'),
+                  )
+                else
+                  ListView.separated(
+                    itemCount: verifications.length,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    separatorBuilder: (_, __) => const SizedBox(height: 10),
+                    itemBuilder: (context, index) {
+                      final item = verifications[index];
+                      final status = (item['status'] ?? 'pending').toString();
+                      final isPending = status == 'pending';
+                      final amount = item['amount'];
+                      final amountLabel = amount is num
+                          ? _priceFormat.format(amount)
+                          : '₹${amount?.toString() ?? '0'}';
+                      final screenshotUrl = item['screenshotUrl']?.toString();
+
+                      return Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .outlineVariant
+                                .withValues(alpha: 0.7),
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    item['name']
+                                                ?.toString()
+                                                .trim()
+                                                .isNotEmpty ==
+                                            true
+                                        ? item['name'].toString()
+                                        : item['userEmail']?.toString() ??
+                                            item['userId']?.toString() ??
+                                            'Unknown user',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                                Chip(
+                                  label: Text(status.toUpperCase()),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                                'Tier: ${item['tierName'] ?? item['tierId'] ?? '—'}'),
+                            Text(
+                                'Billing: ${item['billingCycle'] ?? 'monthly'}'),
+                            Text('Amount: $amountLabel'),
+                            Text('UTR: ${item['utrId'] ?? '—'}'),
+                            if (item['userEmail'] != null)
+                              Text('Email: ${item['userEmail']}'),
+                            if (item['adminComment']
+                                    ?.toString()
+                                    .trim()
+                                    .isNotEmpty ==
+                                true)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 4),
+                                child: Text('Comment: ${item['adminComment']}'),
+                              ),
+                            const SizedBox(height: 10),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: [
+                                if (screenshotUrl != null &&
+                                    screenshotUrl.isNotEmpty)
+                                  OutlinedButton.icon(
+                                    onPressed: () =>
+                                        _openScreenshotPreview(screenshotUrl),
+                                    icon: const Icon(Icons.image_outlined),
+                                    label: const Text('View screenshot'),
+                                  ),
+                                if (isPending)
+                                  FilledButton.icon(
+                                    onPressed: () => _approveVerification(item),
+                                    icon:
+                                        const Icon(Icons.check_circle_outline),
+                                    label: const Text('Approve'),
+                                  ),
+                                if (isPending)
+                                  TextButton.icon(
+                                    onPressed: () => _rejectVerification(item),
+                                    icon: const Icon(Icons.cancel_outlined),
+                                    label: const Text('Reject'),
+                                  ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _openScreenshotPreview(String imageValue) {
+    showDialog<void>(
+      context: context,
+      builder: (_) => Dialog(
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Align(
+                alignment: Alignment.centerRight,
+                child: IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close),
+                ),
+              ),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 520),
+                child: _buildScreenshotImage(imageValue),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildScreenshotImage(String imageValue) {
+    final value = imageValue.trim();
+
+    if (value.startsWith('http://') || value.startsWith('https://')) {
+      return Image.network(
+        value,
+        fit: BoxFit.contain,
+        errorBuilder: (_, __, ___) => const Padding(
+          padding: EdgeInsets.all(20),
+          child: Text('Unable to load screenshot.'),
+        ),
+      );
+    }
+
+    final bytes = _decodeBase64Image(value);
+    if (bytes != null) {
+      return Image.memory(
+        bytes,
+        fit: BoxFit.contain,
+        errorBuilder: (_, __, ___) => const Padding(
+          padding: EdgeInsets.all(20),
+          child: Text('Invalid screenshot format.'),
+        ),
+      );
+    }
+
+    return const Padding(
+      padding: EdgeInsets.all(20),
+      child: Text('Unsupported screenshot format.'),
+    );
+  }
+
+  Uint8List? _decodeBase64Image(String value) {
+    try {
+      if (value.startsWith('data:image')) {
+        return UriData.parse(value).contentAsBytes();
+      }
+
+      final normalized = value.replaceAll(RegExp(r'\s+'), '');
+      if (normalized.isEmpty) return null;
+      return base64Decode(normalized);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _approveVerification(Map<String, dynamic> item) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Approve verification'),
+        content: Text(
+          'Activate ${item['tierName'] ?? item['tierId'] ?? 'subscription'} for ${item['name'] ?? item['userEmail'] ?? item['userId'] ?? 'this user'}?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Approve'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+    try {
+      await _service.approveSubscriptionVerification(verification: item);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Subscription activated and confirmation email queued'),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Approval failed: $error')),
+      );
+    }
+  }
+
+  Future<void> _rejectVerification(Map<String, dynamic> item) async {
+    final reasonController = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Reject verification'),
+        content: TextField(
+          controller: reasonController,
+          minLines: 2,
+          maxLines: 4,
+          decoration: const InputDecoration(
+            hintText: 'Reason for rejection',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Reject'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+    final reason = reasonController.text.trim();
+    if (reason.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please provide a rejection reason')),
+      );
+      return;
+    }
+
+    final docId = item['id']?.toString();
+    if (docId == null || docId.isEmpty) return;
+
+    try {
+      await _service.rejectSubscriptionVerification(
+          docId: docId, reason: reason);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Verification rejected')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Rejection failed: $error')),
+      );
+    }
   }
 
   Widget _buildSubscriberSection(
@@ -655,7 +1053,8 @@ class _AdminSubscriptionsScreenState extends State<AdminSubscriptionsScreen> {
                           );
 
                           await _service.upsertPlan(updatedPlan);
-                          if (mounted) Navigator.pop(context);
+                          if (!mounted) return;
+                          Navigator.of(this.context).pop();
                         },
                         child:
                             Text(plan == null ? 'Create plan' : 'Save changes'),
@@ -971,7 +1370,8 @@ class _AdminSubscriptionsScreenState extends State<AdminSubscriptionsScreen> {
     });
     final total = activePaid.fold<int>(
       0,
-      (sum, sub) => sum + _resolveSubscriptionAmount(sub, planMap[sub.planId]),
+      (totalValue, sub) =>
+          totalValue + _resolveSubscriptionAmount(sub, planMap[sub.planId]),
     );
 
     final scheme = Theme.of(context).colorScheme;
@@ -1104,6 +1504,18 @@ class _AdminSubscriptionsScreenState extends State<AdminSubscriptionsScreen> {
     SubscriptionPlan? plan,
   ) {
     return plan?.name ?? subscription.planName;
+  }
+
+  int _activeRevenue(
+    List<SubscriptionPlan> plans,
+    List<UserSubscription> subscriptions,
+  ) {
+    final planMap = _planMap(plans);
+    return subscriptions.where((sub) => sub.isActive).fold<int>(0,
+        (total, sub) {
+      final amount = _resolveSubscriptionAmount(sub, planMap[sub.planId]);
+      return total + amount;
+    });
   }
 }
 
@@ -1540,7 +1952,7 @@ class _SubscriptionUserSummarySheet extends StatelessWidget {
           borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.12),
+              color: Colors.black.withValues(alpha: 0.12),
               blurRadius: 20,
               offset: const Offset(0, -6),
             ),
@@ -1572,7 +1984,7 @@ class _SubscriptionUserSummarySheet extends StatelessWidget {
             _infoRow('Email', subscription.userEmail ?? 'Not provided'),
             _infoRow(
                 'Subscribed', dateFormatter(subscription.startedAt?.toDate())),
-            _infoRow('Plan', subscription.planName ?? '—'),
+            _infoRow('Plan', subscription.planName),
             const SizedBox(height: 20),
             FutureBuilder<_SubscriptionUserInsights>(
               future: insightsFuture,
@@ -1666,7 +2078,7 @@ class _SubscriptionUserSummarySheet extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 16),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
+        color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(

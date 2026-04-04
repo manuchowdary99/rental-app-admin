@@ -86,7 +86,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-
                             // Admin Icon
                             Container(
                               width: 90,
@@ -229,8 +228,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   ),
                                   onPressed: () {
                                     setState(() {
-                                      _isPasswordVisible =
-                                          !_isPasswordVisible;
+                                      _isPasswordVisible = !_isPasswordVisible;
                                     });
                                   },
                                 ),
@@ -248,10 +246,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   ),
                                 ),
                               ),
-                              validator: (v) =>
-                                  v?.isEmpty == true
-                                      ? 'Password required'
-                                      : null,
+                              validator: (v) => v?.isEmpty == true
+                                  ? 'Password required'
+                                  : null,
                             ),
 
                             const SizedBox(height: 22),
@@ -259,8 +256,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             Align(
                               alignment: Alignment.centerRight,
                               child: TextButton(
-                                onPressed:
-                                    _loading ? null : _forgotPassword,
+                                onPressed: _loading ? null : _forgotPassword,
                                 child: const Text('Forgot password?'),
                               ),
                             ),
@@ -273,15 +269,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               child: ElevatedButton(
                                 onPressed: _loading ? null : _submit,
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor:
-                                      const Color(0xFF781C2E),
+                                  backgroundColor: const Color(0xFF781C2E),
                                   foregroundColor: Colors.white,
                                   elevation: 10,
-                                  shadowColor: const Color(0xFF781C2E)
-                                      .withOpacity(0.5),
+                                  shadowColor:
+                                      const Color(0xFF781C2E).withOpacity(0.5),
                                   shape: RoundedRectangleBorder(
-                                    borderRadius:
-                                        BorderRadius.circular(16),
+                                    borderRadius: BorderRadius.circular(16),
                                   ),
                                 ),
                                 child: _loading
@@ -292,8 +286,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                         'Sign In',
                                         style: TextStyle(
                                           fontSize: 18,
-                                          fontWeight:
-                                              FontWeight.bold,
+                                          fontWeight: FontWeight.bold,
                                         ),
                                       ),
                               ),
@@ -336,7 +329,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = 'Admin login failed';
+        final raw = e.toString();
+        if (raw.toLowerCase().contains('internal assertion failed')) {
+          _error =
+              'Firestore web cache error. Please hard refresh (Ctrl+F5) and try login again.';
+        } else {
+          _error = raw;
+        }
       });
     } finally {
       if (mounted) {
@@ -363,22 +362,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     });
 
     try {
-      await ref
-          .read(authServiceProvider)
-          .sendAdminPasswordReset(email);
+      await ref.read(authServiceProvider).sendAdminPasswordReset(email);
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content:
-              Text('Password reset link sent to your email.'),
+          content: Text('Password reset link sent to your email.'),
         ),
       );
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error =
-            'Unable to send reset email. Please try again.';
+        _error = 'Unable to send reset email. Please try again.';
       });
     } finally {
       if (mounted) {

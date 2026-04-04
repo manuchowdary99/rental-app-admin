@@ -7,10 +7,7 @@ class UserDetailScreen extends StatelessWidget {
   const UserDetailScreen({super.key, required this.userId});
 
   String _orderStatusLabel(Map<String, dynamic> data) {
-    final status = data['orderStatus'] ??
-        data['paymentStatus'] ??
-        data['status'] ??
-        'unknown';
+    final status = data['orderStatus'] ?? data['status'] ?? 'unknown';
     return status.toString();
   }
 

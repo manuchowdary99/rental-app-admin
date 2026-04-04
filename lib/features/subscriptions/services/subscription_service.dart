@@ -17,6 +17,11 @@ class SubscriptionService {
       _firestore.collection('users');
   CollectionReference<Map<String, dynamic>> get _notificationsCollection =>
       _firestore.collection('notifications');
+  CollectionReference<Map<String, dynamic>>
+      get _subscriptionVerificationsCollection =>
+          _firestore.collection('subscription_verifications');
+  CollectionReference<Map<String, dynamic>> get _mailCollection =>
+      _firestore.collection('mail');
 
   static const List<Map<String, dynamic>> _defaultPlans = [
     {
@@ -106,6 +111,147 @@ class SubscriptionService {
     });
   }
 
+  Stream<List<Map<String, dynamic>>> streamSubscriptionVerifications() {
+    return _subscriptionVerificationsCollection.snapshots().map((snapshot) {
+      final list = snapshot.docs.map((doc) {
+        final data = Map<String, dynamic>.from(doc.data());
+        data['id'] = doc.id;
+        return data;
+      }).toList();
+
+      list.sort((a, b) {
+        final aPending = (a['status'] ?? '').toString() == 'pending';
+        final bPending = (b['status'] ?? '').toString() == 'pending';
+        if (aPending && !bPending) return -1;
+        if (!aPending && bPending) return 1;
+
+        final aTs =
+            (a['submittedAt'] as Timestamp?)?.millisecondsSinceEpoch ?? 0;
+        final bTs =
+            (b['submittedAt'] as Timestamp?)?.millisecondsSinceEpoch ?? 0;
+        return bTs.compareTo(aTs);
+      });
+
+      return list;
+    });
+  }
+
+  Future<void> approveSubscriptionVerification({
+    required Map<String, dynamic> verification,
+  }) async {
+    final docId = verification['id']?.toString();
+    final userId = verification['userId']?.toString();
+    if (docId == null || docId.isEmpty || userId == null || userId.isEmpty) {
+      throw Exception('Invalid verification payload');
+    }
+
+    final tierId = _stringValue(verification['tierId']) ?? 'basic';
+    final tierName = _stringValue(verification['tierName']) ?? tierId;
+    final billingCycle =
+        (_stringValue(verification['billingCycle']) ?? 'monthly').toLowerCase();
+    final amount = _toDouble(verification['amount']) ?? 0;
+    final now = DateTime.now();
+    final expiry = Timestamp.fromDate(
+      now.add(billingCycle == 'yearly'
+          ? const Duration(days: 365)
+          : const Duration(days: 30)),
+    );
+    final nowTs = Timestamp.fromDate(now);
+
+    final batch = _firestore.batch();
+    final verificationRef = _subscriptionVerificationsCollection.doc(docId);
+    final userRef = _usersCollection.doc(userId);
+    final subscriptionRef = _subscriptionsCollection.doc(userId);
+
+    batch.update(verificationRef, {
+      'status': 'approved',
+      'adminComment': 'Payment verified by admin',
+      'reviewedAt': FieldValue.serverTimestamp(),
+    });
+
+    batch.set(
+      userRef,
+      {
+        'subscriptionTier': tierId,
+        'subscriptionStatus': 'active',
+        'subscriptionExpiry': expiry,
+        'endDate': expiry,
+        'updatedAt': FieldValue.serverTimestamp(),
+      },
+      SetOptions(merge: true),
+    );
+
+    batch.set(
+      subscriptionRef,
+      {
+        'userId': userId,
+        'planId': tierId,
+        'planName': tierName,
+        'subscriptionTier': tierId,
+        'billingCycle': billingCycle,
+        'price': amount,
+        'status': 'active',
+        'subscriptionStatus': 'active',
+        'autoRenew': false,
+        'startedAt': nowTs,
+        'renewsAt': expiry,
+        'expiryDate': expiry,
+        'subscriptionExpiry': expiry,
+        'endDate': expiry,
+        'updatedAt': FieldValue.serverTimestamp(),
+      },
+      SetOptions(merge: true),
+    );
+
+    batch.set(
+      userRef.collection('notifications').doc(),
+      {
+        'title': 'Subscription Activated',
+        'body': 'Your $tierName subscription is now active.',
+        'type': 'subscription_approved',
+        'isRead': false,
+        'createdAt': FieldValue.serverTimestamp(),
+      },
+    );
+
+    final userEmail = _stringValue(verification['userEmail']);
+    if (userEmail != null) {
+      final userName = _stringValue(verification['name']) ?? 'User';
+      batch.set(
+        _mailCollection.doc(),
+        {
+          'to': [userEmail],
+          'message': {
+            'subject': 'Subscription Activated - $tierName',
+            'text':
+                'Hi $userName, your subscription payment was verified successfully. Your $tierName plan is active now.',
+            'html':
+                '<p>Hi $userName,</p><p>Your subscription payment has been verified successfully.</p><p><b>Plan:</b> $tierName<br/><b>Billing cycle:</b> $billingCycle</p><p>Your plan is now active.</p>',
+          },
+          'meta': {
+            'type': 'subscription_approved',
+            'userId': userId,
+            'verificationId': docId,
+          },
+          'createdAt': FieldValue.serverTimestamp(),
+        },
+      );
+    }
+
+    await batch.commit();
+  }
+
+  Future<void> rejectSubscriptionVerification({
+    required String docId,
+    required String reason,
+  }) {
+    return _subscriptionVerificationsCollection.doc(docId).update({
+      'status': 'rejected',
+      'adminComment': reason,
+      'reviewedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
   Future<void> upsertPlan(SubscriptionPlan plan) async {
     final docRef = plan.id.isNotEmpty
         ? _plansCollection.doc(plan.id)
@@ -157,6 +303,7 @@ class SubscriptionService {
       'updatedAt': FieldValue.serverTimestamp(),
       'expiryDate': FieldValue.serverTimestamp(),
       'subscriptionExpiry': FieldValue.serverTimestamp(),
+      'endDate': FieldValue.serverTimestamp(),
     });
   }
 
@@ -188,6 +335,7 @@ class SubscriptionService {
       'updatedAt': FieldValue.serverTimestamp(),
       'expiryDate': expiryDate,
       'subscriptionExpiry': expiryDate,
+      'endDate': expiryDate,
     });
   }
 
@@ -338,6 +486,12 @@ class SubscriptionService {
     if (value == null) return null;
     final result = value.toString().trim();
     return result.isEmpty ? null : result;
+  }
+
+  double? _toDouble(dynamic value) {
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value.trim());
+    return null;
   }
 
   // -------------------------------

@@ -113,7 +113,7 @@ class AdminDashboardScreen extends ConsumerWidget {
                 ),
               ),
               Text(
-                'Orders & transactions overview',
+                'Orders & subscriptions overview',
                 style: TextStyle(fontSize: 14, color: Colors.grey),
               ),
             ],

@@ -18,7 +18,6 @@ class AdminOrderDetailsScreen extends StatefulWidget {
 
 class _AdminOrderDetailsScreenState extends State<AdminOrderDetailsScreen> {
   final Map<String, String> _userCache = {};
-  bool _isProcessingRefund = false;
 
   // ================= MAIN =================
   @override
@@ -132,19 +131,10 @@ class _AdminOrderDetailsScreenState extends State<AdminOrderDetailsScreen> {
             const SizedBox(width: 12),
             Expanded(
               child: StatCard(
-                title: 'Return',
+                title: 'Rental Status',
                 value: rental['returnStatus'] ?? 'pending',
                 icon: Icons.assignment_return,
                 color: Colors.orange,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: StatCard(
-                title: 'Refund',
-                value: rental['refundStatus'] ?? 'pending',
-                icon: Icons.currency_rupee,
-                color: Colors.green,
               ),
             ),
           ],
@@ -242,8 +232,6 @@ class _AdminOrderDetailsScreenState extends State<AdminOrderDetailsScreen> {
 
         final returnStatus =
             (rental?['returnStatus'] ?? '').toString().toLowerCase();
-        final refundStatus =
-            (rental?['refundStatus'] ?? '').toString().toLowerCase();
 
         return AdminCard(
           child: Column(
@@ -259,8 +247,6 @@ class _AdminOrderDetailsScreenState extends State<AdminOrderDetailsScreen> {
               _row('Deposit', '₹ ${rental?['depositAmount'] ?? 0}'),
               _row('Return Status', rental?['returnStatus'] ?? '—'),
               _row('Returned At', _fmt(rental?['returnedAt'])),
-              _row('Refund Status', rental?['refundStatus'] ?? '—'),
-              _row('Refunded At', _fmt(rental?['refundedAt'])),
               const SizedBox(height: 16),
               if (rental != null && returnStatus != 'returned')
                 SizedBox(
@@ -268,24 +254,6 @@ class _AdminOrderDetailsScreenState extends State<AdminOrderDetailsScreen> {
                   child: OutlinedButton(
                     onPressed: _markReturned,
                     child: const Text('Mark Returned'),
-                  ),
-                ),
-              if (rental != null &&
-                  returnStatus == 'returned' &&
-                  refundStatus != 'refunded')
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _isProcessingRefund
-                        ? null
-                        : () => _refundDeposit(rental?['depositAmount'] ?? 0),
-                    child: _isProcessingRefund
-                        ? const SizedBox(
-                            height: 18,
-                            width: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Text('Refund Deposit'),
                   ),
                 ),
             ],
@@ -324,16 +292,6 @@ class _AdminOrderDetailsScreenState extends State<AdminOrderDetailsScreen> {
                 title: 'Item Returned',
                 time: rental['returnedAt'],
                 icon: Icons.assignment_return,
-              ),
-            );
-          }
-
-          if (rental['refundedAt'] != null) {
-            events.add(
-              _TimelineEvent(
-                title: 'Deposit Refunded',
-                time: rental['refundedAt'],
-                icon: Icons.currency_rupee,
               ),
             );
           }
@@ -399,92 +357,11 @@ class _AdminOrderDetailsScreenState extends State<AdminOrderDetailsScreen> {
     });
 
     await orderRef.update({
-      'orderStatus': 'returned',
+      'orderStatus': 'completed',
       'updatedAt': timestamp,
     });
 
     if (mounted) setState(() {});
-  }
-
-  Future<void> _refundDeposit(dynamic amount) async {
-    if (_isProcessingRefund) return;
-
-    setState(() => _isProcessingRefund = true);
-
-    try {
-      final firestore = FirebaseFirestore.instance;
-      final orderRef = firestore.collection('orders').doc(widget.orderId);
-      final rentalRef = orderRef.collection('rentals').doc('details');
-
-      final orderSnap = await orderRef.get();
-      if (!orderSnap.exists) {
-        throw Exception('Order does not exist');
-      }
-
-      final orderData = orderSnap.data() as Map<String, dynamic>?;
-      final userId = orderData?['userId'];
-      if (userId == null) {
-        throw Exception('Missing user reference');
-      }
-
-      final refundAmount = amount is num
-          ? amount.toDouble()
-          : double.tryParse(amount?.toString() ?? '') ?? 0;
-
-      final batch = firestore.batch();
-      final timestamp = Timestamp.now();
-
-      batch.update(rentalRef, {
-        'refundStatus': 'refunded',
-        'refundedAt': timestamp,
-      });
-
-      batch.update(orderRef, {
-        'paymentStatus': 'completed',
-        'orderStatus': 'completed',
-        'updatedAt': timestamp,
-      });
-
-      batch.set(orderRef.collection('transactions').doc(), {
-        'type': 'refund',
-        'amount': refundAmount,
-        'createdAt': Timestamp.now(),
-      });
-
-      batch.set(
-        firestore
-            .collection('users')
-            .doc(userId)
-            .collection('notifications')
-            .doc(),
-        {
-          'title': 'Deposit Refunded',
-          'body': '₹${refundAmount.toStringAsFixed(0)} has been refunded',
-          'type': 'refund',
-          'orderId': widget.orderId,
-          'isRead': false,
-          'createdAt': Timestamp.now(),
-        },
-      );
-
-      await batch.commit();
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Deposit refunded successfully')),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to refund deposit: $e')),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isProcessingRefund = false);
-      }
-    }
   }
 
   // ================= HELPERS =================

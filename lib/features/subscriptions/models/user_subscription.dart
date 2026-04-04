@@ -16,6 +16,7 @@ class UserSubscription {
     this.userPhone,
     this.startedAt,
     this.renewsAt,
+    this.endDate,
     this.canceledAt,
     this.cancelReason,
   });
@@ -36,6 +37,7 @@ class UserSubscription {
 
   final Timestamp? startedAt;
   final Timestamp? renewsAt;
+  final Timestamp? endDate;
   final Timestamp? canceledAt;
   final String? cancelReason;
 
@@ -51,7 +53,7 @@ class UserSubscription {
   /// ADD THIS GETTER (for compatibility)
   /// ------------------------------------------------
 
-  Timestamp? get expiryDate => renewsAt;
+  Timestamp? get expiryDate => endDate ?? renewsAt;
 
   /// ------------------------------------------------
   /// FIRESTORE MAPPING
@@ -63,39 +65,28 @@ class UserSubscription {
     return UserSubscription(
       id: doc.id,
       userId: (data['userId'] ?? doc.id).toString(),
-
       planId: (data['planId'] ?? data['subscriptionTier'] ?? '').toString(),
-
       planName: (data['planName'] ??
               data['subscriptionTier'] ??
               data['planId'] ??
               'Unknown Plan')
           .toString(),
-
       billingCycle: (data['billingCycle'] ??
               data['subscriptionCycle'] ??
               data['subscriptionDuration'] ??
               'monthly')
           .toString(),
-
       status:
           (data['status'] ?? data['subscriptionStatus'] ?? 'active').toString(),
-
       price: _readPrice(
         data['price'] ?? data['amount'] ?? data['subscriptionAmount'],
       ),
-
       currency: (data['currency'] ?? data['subscriptionCurrency'] ?? 'INR')
           .toString(),
-
       autoRenew: data['autoRenew'] != false,
-
       userName: data['userName']?.toString() ?? data['user_name']?.toString(),
-
       userEmail: data['userEmail']?.toString() ?? data['email']?.toString(),
-
       userPhone: data['userPhone']?.toString() ?? data['phone']?.toString(),
-
       startedAt: data['startedAt'] is Timestamp
           ? data['startedAt'] as Timestamp
           : data['startDate'] is Timestamp
@@ -103,7 +94,6 @@ class UserSubscription {
               : data['subscriptionStart'] is Timestamp
                   ? data['subscriptionStart'] as Timestamp
                   : null,
-
       renewsAt: data['subscriptionExpiry'] is Timestamp
           ? data['subscriptionExpiry'] as Timestamp
           : data['expiryDate'] is Timestamp
@@ -111,11 +101,11 @@ class UserSubscription {
               : data['renewsAt'] is Timestamp
                   ? data['renewsAt'] as Timestamp
                   : null,
-
+      endDate:
+          data['endDate'] is Timestamp ? data['endDate'] as Timestamp : null,
       canceledAt: data['canceledAt'] is Timestamp
           ? data['canceledAt'] as Timestamp
           : null,
-
       cancelReason: data['cancelReason']?.toString(),
     );
   }
@@ -139,6 +129,7 @@ class UserSubscription {
     String? userPhone,
     Timestamp? startedAt,
     Timestamp? renewsAt,
+    Timestamp? endDate,
     Timestamp? canceledAt,
     String? cancelReason,
   }) {
@@ -157,6 +148,7 @@ class UserSubscription {
       userPhone: userPhone ?? this.userPhone,
       startedAt: startedAt ?? this.startedAt,
       renewsAt: renewsAt ?? this.renewsAt,
+      endDate: endDate ?? this.endDate,
       canceledAt: canceledAt ?? this.canceledAt,
       cancelReason: cancelReason ?? this.cancelReason,
     );

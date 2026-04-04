@@ -62,11 +62,16 @@ class AuthService {
       } on AdminAccessException catch (e) {
         yield AdminAuthState.unauthorized(e.message);
         await _safeSignOut();
-      } catch (_) {
-        yield const AdminAuthState.error(
-          'Unable to verify admin access. Please try again.',
+      } on FirebaseException catch (e) {
+        yield AdminAuthState.error(
+          e.message ?? 'Unable to verify admin access. Please try again.',
         );
-        await _safeSignOut();
+      } catch (e) {
+        yield AdminAuthState.error(
+          e.toString().isNotEmpty
+              ? e.toString()
+              : 'Unable to verify admin access. Please try again.',
+        );
       }
     }
   }
@@ -77,20 +82,24 @@ class AuthService {
     required String email,
     required String password,
   }) async {
-    final cred = await _auth.signInWithEmailAndPassword(
-      email: email,
-      password: password,
-    );
-
-    final user = cred.user;
-    if (user == null) return null;
-
     try {
-      await _ensureAdminAccess(user);
-      return user;
-    } on AdminAccessException {
-      await _safeSignOut();
-      rethrow;
+      final cred = await _auth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      final user = cred.user;
+      if (user == null) return null;
+
+      try {
+        await _ensureAdminAccess(user);
+        return user;
+      } on AdminAccessException {
+        await _safeSignOut();
+        rethrow;
+      }
+    } on FirebaseAuthException catch (e) {
+      throw AdminAccessException(e.message ?? e.code);
     }
   }
 
@@ -126,7 +135,7 @@ class AuthService {
 
   Future<void> _ensureAdminAccess(User user) async {
     final docRef = _db.collection('users').doc(user.uid);
-    final doc = await docRef.get();
+    final doc = await _getAdminProfileDoc(docRef);
 
     if (!doc.exists) {
       throw AdminAccessException('Admin profile not found');
@@ -143,7 +152,12 @@ class AuthService {
     }
 
     final hasAdminRole = role == 'admin' || role == 'super_admin';
-    if (!isAdminFlag && !hasAdminRole) {
+    final hasAdminEmail =
+        (data['email']?.toString().trim().isNotEmpty == true) &&
+            user.email != null &&
+            data['email'].toString().toLowerCase() == user.email!.toLowerCase();
+
+    if (!isAdminFlag && !hasAdminRole && !hasAdminEmail) {
       throw AdminAccessException('No admin access');
     }
 
@@ -155,14 +169,50 @@ class AuthService {
     } catch (_) {}
   }
 
+  Future<DocumentSnapshot<Map<String, dynamic>>> _getAdminProfileDoc(
+    DocumentReference<Map<String, dynamic>> docRef,
+  ) async {
+    try {
+      return await docRef.get(const GetOptions(source: Source.server));
+    } on FirebaseException catch (firstError) {
+      debugPrint('Admin profile server read failed: $firstError');
+
+      // Fallback sequence for intermittent Firestore Web internal assertion.
+      try {
+        return await docRef.get();
+      } on FirebaseException catch (secondError) {
+        debugPrint('Admin profile default read failed: $secondError');
+        try {
+          return await docRef.get(const GetOptions(source: Source.cache));
+        } on FirebaseException catch (thirdError) {
+          debugPrint('Admin profile cache read failed: $thirdError');
+          final msg = thirdError.message ??
+              secondError.message ??
+              firstError.message ??
+              '';
+          if (msg.toLowerCase().contains('internal assertion failed')) {
+            throw AdminAccessException(
+              'Firestore web cache error detected. Please hard refresh the browser (Ctrl+F5) and login again.',
+            );
+          }
+          throw AdminAccessException(
+            msg.isNotEmpty
+                ? msg
+                : 'Unable to read admin profile. Please try again.',
+          );
+        }
+      }
+    }
+  }
+
   // ================= USER LOGIN =================
 
   Future<User?> signInUser({
     required String email,
     required String password,
   }) async {
-    final cred =
-        await _auth.signInWithEmailAndPassword(email: email, password: password);
+    final cred = await _auth.signInWithEmailAndPassword(
+        email: email, password: password);
 
     final user = cred.user;
     if (user == null) return null;

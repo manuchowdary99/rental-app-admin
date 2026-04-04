@@ -1,6 +1,9 @@
+import 'dart:math' as math;
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:rental_admin_app/core/services/location_iq_service.dart';
 
 class ProductDetailsScreen extends StatefulWidget {
   final String productId;
@@ -19,6 +22,7 @@ class ProductDetailsScreen extends StatefulWidget {
 class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
+  final Map<String, Future<String?>> _locationFutureCache = {};
 
   @override
   void dispose() {
@@ -76,15 +80,27 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
           final priceLabel = _formatCurrency(data['price']);
           final owner = data['userName']?.toString();
           final ownerId = data['userId']?.toString();
-          final location =
-              data['location']?.toString() ?? data['city']?.toString();
+          final fallbackLocation = _resolveLocationLabel(data);
+          final coordinates = _extractCoordinates(data);
+          Future<String?>? locationFuture;
+          if (coordinates != null) {
+            final cacheKey =
+                '${coordinates.lat.toStringAsFixed(6)},${coordinates.lon.toStringAsFixed(6)}';
+            locationFuture = _locationFutureCache.putIfAbsent(cacheKey, () {
+              return LocationIqService.reverseGeocode(
+                latitude: coordinates.lat,
+                longitude: coordinates.lon,
+              ).catchError((_) => null).then(
+                    (value) => value ?? fallbackLocation,
+                  );
+            });
+          }
           final depositValue = data['depositAmount'];
           final deposit =
               depositValue == null ? null : _formatCurrency(depositValue);
           final status = data['status']?.toString() ?? 'pending';
           final active = data['isActive'] == true;
           final flagged = data['isFlagged'] == true;
-          final riskScore = data['riskScore'];
           final createdAt = _formatTimestamp(data['createdAt']);
           final updatedAt = _formatTimestamp(data['updatedAt']);
           final rejectionReason = data['rejectionReason']?.toString();
@@ -148,8 +164,6 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                             if (flagged)
                               _statusChip('FLAGGED', Colors.red,
                                   icon: Icons.flag_outlined),
-                            if (riskScore != null)
-                              _statusChip('RISK $riskScore', Colors.orange),
                           ],
                         ),
                       ],
@@ -162,13 +176,11 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                       _infoRow('Listing ID', widget.productId),
                       if (owner != null) _infoRow('Owner', owner),
                       if (ownerId != null) _infoRow('Owner ID', ownerId),
-                      if (location != null) _infoRow('Location', location),
+                      _buildLocationRow(locationFuture, fallbackLocation),
                       if (deposit != null) _infoRow('Deposit', deposit),
                       _infoRow('Status', status.toUpperCase()),
                       _infoRow('Active', active ? 'Yes' : 'No'),
                       _infoRow('Flagged', flagged ? 'Yes' : 'No'),
-                      if (riskScore != null)
-                        _infoRow('Risk Score', '$riskScore'),
                       _infoRow('Created', createdAt),
                       if (updatedAt != null) _infoRow('Updated', updatedAt),
                     ],
@@ -242,26 +254,49 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
   }
 
   Widget _buildGallery(BuildContext context, List<String> images, String name) {
-    if (images.isEmpty) {
-      return AspectRatio(
-        aspectRatio: 16 / 9,
-        child: Container(
-          margin: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: const Color(0xFFE7DAD0),
-            borderRadius: BorderRadius.circular(20),
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final safeWidth = screenWidth - 40;
+    final effectiveWidth = safeWidth > 0 ? safeWidth : screenWidth;
+    final bool isDesktop = screenWidth >= 1024;
+    final targetWidth = isDesktop ? 640.0 : math.max(320.0, effectiveWidth);
+    final galleryWidth = math.min(targetWidth, effectiveWidth);
+
+    Widget wrapInShell(Widget child,
+        {EdgeInsets padding = const EdgeInsets.fromLTRB(20, 20, 20, 12)}) {
+      return Padding(
+        padding: padding,
+        child: Center(
+          child: SizedBox(
+            width: galleryWidth,
+            child: child,
           ),
-          child: Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.image_outlined, size: 48, color: Colors.brown[300]),
-                const SizedBox(height: 8),
-                const Text('No images uploaded yet'),
-              ],
+        ),
+      );
+    }
+
+    if (images.isEmpty) {
+      return wrapInShell(
+        AspectRatio(
+          aspectRatio: 16 / 9,
+          child: Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFFE7DAD0),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.image_outlined,
+                      size: 48, color: Colors.brown[300]),
+                  const SizedBox(height: 8),
+                  const Text('No images uploaded yet'),
+                ],
+              ),
             ),
           ),
         ),
+        padding: const EdgeInsets.all(20),
       );
     }
 
@@ -269,63 +304,64 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
 
     return Column(
       children: [
-        AspectRatio(
-          aspectRatio: 16 / 9,
-          child: Container(
-            margin: const EdgeInsets.fromLTRB(20, 20, 20, 12),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.08),
-                  blurRadius: 18,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(24),
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  PageView.builder(
-                    controller: _pageController,
-                    itemCount: images.length,
-                    onPageChanged: (index) {
-                      setState(() => _currentPage = index);
-                    },
-                    itemBuilder: (_, index) {
-                      final url = images[index];
-                      return Image.network(
-                        url,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(
-                          color: const Color(0xFFE7DAD0),
-                          alignment: Alignment.center,
-                          child:
-                              const Icon(Icons.broken_image_outlined, size: 40),
-                        ),
-                      );
-                    },
-                  ),
-                  Positioned(
-                    left: 16,
-                    bottom: 16,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.45),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        name,
-                        style: const TextStyle(
-                            color: Colors.white, fontWeight: FontWeight.w600),
-                      ),
-                    ),
+        wrapInShell(
+          AspectRatio(
+            aspectRatio: 16 / 9,
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.08),
+                    blurRadius: 18,
+                    offset: const Offset(0, 8),
                   ),
                 ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(24),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    PageView.builder(
+                      controller: _pageController,
+                      itemCount: images.length,
+                      onPageChanged: (index) {
+                        setState(() => _currentPage = index);
+                      },
+                      itemBuilder: (_, index) {
+                        final url = images[index];
+                        return Image.network(
+                          url,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Container(
+                            color: const Color(0xFFE7DAD0),
+                            alignment: Alignment.center,
+                            child: const Icon(Icons.broken_image_outlined,
+                                size: 40),
+                          ),
+                        );
+                      },
+                    ),
+                    Positioned(
+                      left: 16,
+                      bottom: 16,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.45),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          name,
+                          style: const TextStyle(
+                              color: Colors.white, fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -383,6 +419,30 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildLocationRow(
+    Future<String?>? future,
+    String? fallback,
+  ) {
+    final defaultLabel = fallback ?? '—';
+    if (future == null) {
+      return _infoRow('Location', defaultLabel);
+    }
+
+    return FutureBuilder<String?>(
+      future: future,
+      builder: (context, snapshot) {
+        String label;
+        if (snapshot.connectionState == ConnectionState.waiting &&
+            fallback == null) {
+          label = 'Resolving location…';
+        } else {
+          label = snapshot.data ?? defaultLabel;
+        }
+        return _infoRow('Location', label);
+      },
     );
   }
 
@@ -536,6 +596,152 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
       }
     }
     return const [];
+  }
+
+  String? _resolveLocationLabel(Map<String, dynamic> data) {
+    final formatted = _formatLocation(data['location']);
+    if (formatted != null) return formatted;
+
+    final fallback = <String, dynamic>{
+      'address': data['address'],
+      'city': data['city'],
+      'state': data['state'],
+      'country': data['country'],
+      'lat': data['lat'],
+      'lng': data['lng'],
+      'geoPoint': data['geoPoint'],
+    }..removeWhere((_, value) => value == null);
+
+    if (fallback.isEmpty) return null;
+    return _formatLocation(fallback);
+  }
+
+  String? _formatLocation(dynamic raw) {
+    if (raw == null) return null;
+
+    if (raw is String) {
+      final tokens = raw
+          .split(',')
+          .map((part) => part.trim())
+          .where((part) => part.isNotEmpty && !_isPlaceholderValue(part))
+          .toList();
+      if (tokens.isEmpty) return null;
+      return tokens.join(', ');
+    }
+
+    if (raw is GeoPoint) {
+      return '${raw.latitude.toStringAsFixed(4)}, ${raw.longitude.toStringAsFixed(4)}';
+    }
+
+    if (raw is Map) {
+      final map = Map<String, dynamic>.from(raw);
+      final parts = <String>[];
+
+      void addPart(dynamic value) {
+        final text = value?.toString().trim();
+        if (text == null || text.isEmpty) return;
+        if (_isPlaceholderValue(text)) return;
+        if (!parts.contains(text)) {
+          parts.add(text);
+        }
+      }
+
+      addPart(map['address'] ?? map['line1']);
+      addPart(map['city'] ?? map['locality']);
+      addPart(map['state']);
+      addPart(map['country']);
+
+      if (parts.isNotEmpty) {
+        return parts.join(', ');
+      }
+
+      final geoPoint = map['geoPoint'];
+      double? lat = _toDouble(map['lat'] ?? map['latitude']);
+      double? lng = _toDouble(map['lng'] ?? map['longitude']);
+
+      if (geoPoint is GeoPoint) {
+        lat ??= geoPoint.latitude;
+        lng ??= geoPoint.longitude;
+      }
+
+      if (lat != null && lng != null) {
+        return '${lat.toStringAsFixed(4)}, ${lng.toStringAsFixed(4)}';
+      }
+
+      final stringValues = map.values
+          .whereType<String>()
+          .map((value) => value.trim())
+          .where((value) => value.isNotEmpty && !_isPlaceholderValue(value))
+          .toList();
+
+      if (stringValues.isNotEmpty) {
+        return stringValues.join(', ');
+      }
+
+      return null;
+    }
+
+    return raw.toString();
+  }
+
+  double? _toDouble(dynamic value) {
+    if (value is num) return value.toDouble();
+    if (value is String) {
+      return double.tryParse(value);
+    }
+    return null;
+  }
+
+  bool _isPlaceholderValue(String value) {
+    final normalized = value.trim().toLowerCase();
+    const placeholders = {
+      'city',
+      'state',
+      'country',
+      'current location',
+      'location',
+      'address',
+      'geo',
+      'geopoint',
+      'unknown',
+      'n/a',
+      '-',
+    };
+    return placeholders.contains(normalized) || normalized.isEmpty;
+  }
+
+  ({double lat, double lon})? _extractCoordinates(Map<String, dynamic> data) {
+    double? lat;
+    double? lon;
+
+    dynamic location = data['location'];
+    if (location is GeoPoint) {
+      lat = location.latitude;
+      lon = location.longitude;
+    } else if (location is Map) {
+      lat = _toDouble(location['lat'] ?? location['latitude']);
+      lon = _toDouble(
+          location['lng'] ?? location['lon'] ?? location['longitude']);
+      final geoPoint = location['geoPoint'];
+      if (geoPoint is GeoPoint) {
+        lat ??= geoPoint.latitude;
+        lon ??= geoPoint.longitude;
+      }
+    }
+
+    final rootGeo = data['geoPoint'];
+    if (rootGeo is GeoPoint) {
+      lat ??= rootGeo.latitude;
+      lon ??= rootGeo.longitude;
+    }
+
+    lat ??= _toDouble(data['lat']);
+    lon ??= _toDouble(data['lng'] ?? data['lon']);
+
+    if (lat != null && lon != null) {
+      return (lat: lat, lon: lon);
+    }
+    return null;
   }
 
   String _formatCurrency(dynamic value) {

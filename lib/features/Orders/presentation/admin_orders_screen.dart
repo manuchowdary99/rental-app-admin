@@ -19,6 +19,11 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
 
   final Map<String, String> _userCache = {};
 
+  bool _isCompletedOrder(Map<String, dynamic> data) {
+    final status = (data['orderStatus'] ?? '').toString().toLowerCase();
+    return status == 'completed' || status == 'returned' || status == 'closed';
+  }
+
   // ---------------- SAFE HELPERS ----------------
   String _safeText(dynamic v, {String fallback = '—'}) {
     if (v == null) return fallback;
@@ -163,7 +168,7 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
           total = snapshot.data!.docs.length;
           for (final d in snapshot.data!.docs) {
             final data = d.data() as Map<String, dynamic>;
-            if (data['paymentStatus'] == 'completed') {
+            if (_isCompletedOrder(data)) {
               completed++;
             }
           }
@@ -291,13 +296,11 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
             return false;
           }
 
-          if (_selectedStatus == 'completed' &&
-              data['paymentStatus'] != 'completed') {
+          if (_selectedStatus == 'completed' && !_isCompletedOrder(data)) {
             return false;
           }
 
-          if (_selectedStatus == 'active' &&
-              data['paymentStatus'] == 'completed') {
+          if (_selectedStatus == 'active' && _isCompletedOrder(data)) {
             return false;
           }
 
@@ -394,10 +397,8 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
                 ),
                 const SizedBox(width: 8),
                 StatusChip(
-                  text: _safeUpper(data['paymentStatus'], fallback: 'PENDING'),
-                  color: data['paymentStatus'] == 'completed'
-                      ? Colors.green
-                      : Colors.orange,
+                  text: _safeUpper(data['orderStatus'], fallback: 'PENDING'),
+                  color: _isCompletedOrder(data) ? Colors.green : Colors.orange,
                   isSmall: true,
                 ),
               ],

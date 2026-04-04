@@ -24,6 +24,7 @@ dependencies:
 
   # Charts
   fl_chart: ^0.66.0
+  http: ^1.2.2
 
   # State management
   flutter_riverpod: ^2.5.1
